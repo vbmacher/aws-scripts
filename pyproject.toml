@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "aws-scripts"
+version = "0.0.0"
+license = "MIT"
+description = "AWSome Scripts"
+authors = ["Peter Jakubčo <pjakubco@gmail.com>"]
+readme = "README.md"
+homepage = "https://github.com/vbmacher/aws-scripts"
+repository = "https://github.com/vbmacher/aws-scripts"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+    "Typing :: Typed"
+]
+packages = [
+    { include = "awsscripts" }
+]
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+
+[build-system]
+requires = ["poetry>=1.0.2", "poetry-dynamic-versioning"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+boto3 = "^1.18"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"
+
+[tool.poetry.scripts]
+emr-start='awsscripts.emr.scripts.emr_start:main'
+emr-is-idle='awsscripts.emr.scripts.emr_is_idle:main'
+emr-submit-spark='awsscripts.emr.scripts.emr_submit_spark:main'
+emr-terminate='awsscripts.emr.scripts.emr_terminate:main'
+codeartifact='awsscripts.emr.scripts.codeartifact:main'
