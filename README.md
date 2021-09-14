@@ -37,7 +37,7 @@ by the `aws-accounts` script.
 
 The content of the files is a JSON, a single object with keys representing AWS services, e.g.:
 
-```json
+```
 {
   "emr": {
     ...
