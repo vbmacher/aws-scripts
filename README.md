@@ -27,7 +27,41 @@ Before using, please set up AWS CLI configuration:
 
 ### AWSome scripts accounts
 
-TODO
+Script `aws-accounts` allows you to manage "profiles" or "accounts" used by AWSome scripts.
+One account is represented by a single JSON file in user home directory,
+e.g.: `~/.aws-scripts/accounts/your_account.json`. Multiple accounts can be used for multiple real AWS accounts,
+or VPCs.
+
+Default account is determined by a symlink `~/.aws-scripts/accounts/.default.json`. This symlink is fully managed
+by the `aws-accounts` script.
+
+The content of the files is a JSON, a single object with keys representing AWS services, e.g.:
+
+```json
+{
+  "emr": {
+    ...
+  },
+  "codeartifact": {
+    ...
+  },
+  ...
+}
+```
+
+CRUD of AWSome accounts and making default account is fully automatic. It is expected from users to just
+edit the files and filling the templates values in their accounts. For example, if a user wants to configure AWS EMR,
+it is required to execute:
+
+```
+aws-accounts -a your_account -c emr
+```
+
+This will add EMR template in the `~/.aws-scripts/accounts/your_account.json` file. Then, it is required to manually
+open and edit the file to fill the values in.
+
+This setup is required to be done for all supported AWS services, if you want to use AWSome script for those
+services.
 
 ## Build
 
