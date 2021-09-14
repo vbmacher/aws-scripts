@@ -1,7 +1,7 @@
 import math
 from typing import Any, Dict, List, Optional
 
-from awsscripts.emr.helpers.ec2 import ec2_instances
+from awsscripts.helpers.ec2 import ec2_instances
 
 
 def get_spark_configurations(instance_type: str, node_count: int) -> List[Dict[str, Any]]:

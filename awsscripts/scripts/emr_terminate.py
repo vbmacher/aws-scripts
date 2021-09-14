@@ -1,12 +1,17 @@
 import argparse
-from awsscripts.emr.helpers.emr import EMR
-from awsscripts.accounts import accounts, default_account
+
+from awsscripts.helpers.accounts import Accounts
+from awsscripts.helpers.emr import EMR
 
 
 def main():
+    accounts = Accounts()
+    default_account = accounts.get_default_account()
+    default_msg = f' (default={default_account})' if default_account else ''
+
     parser = argparse.ArgumentParser(description='Terminates EMR cluster')
     parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
-                        help=f"AWS account (default='{default_account}'). One of: {accounts.keys()}")
+                        help=f"AWS account{default_msg}. One of: {accounts.list()}")
     parser.add_argument('-c', '--clusterid', metavar='ID', type=str, required=True, help='cluster ID')
 
     args = parser.parse_args()

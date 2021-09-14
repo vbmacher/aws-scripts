@@ -20,7 +20,6 @@ def main():
     token = token_with_server['CliToken']
     server = token_with_server['WebServerHostname']
 
-    print(args.command)
     r = json.loads(requests.post(f'https://{server}/aws_mwaa/cli', data=args.command, headers={
         'Authorization': f'Bearer {token}',
         'Content-Type': 'text/plain'

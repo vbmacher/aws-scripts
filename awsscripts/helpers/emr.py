@@ -4,7 +4,6 @@ EMR - Elastic Map Reduce
 Helper class to manage EMR clusters using Boto3 Python library.
 """
 
-import logging
 from typing import List, Dict, Any
 
 import boto3
@@ -14,7 +13,6 @@ from botocore.exceptions import ClientError
 class EMR:
 
     def __init__(self, region: str):
-        self.logger = logging.getLogger("aws-scripts")
         self.emr_client = boto3.client('emr', region_name=region)
 
     def start_cluster(self,
@@ -179,9 +177,9 @@ class EMR:
                 Tags=tags
             )
             cluster_id = response['JobFlowId']
-            self.logger.info("Created cluster %s.", cluster_id)
+            print("Created cluster %s.", cluster_id)
         except ClientError:
-            self.logger.exception("Couldn't create cluster.")
+            print("Couldn't create cluster.")
             raise
         else:
             return cluster_id
@@ -196,9 +194,9 @@ class EMR:
         try:
             response = self.emr_client.describe_cluster(ClusterId=cluster_id)
             cluster = response['Cluster']
-            self.logger.info("Got data for cluster %s.", cluster['Name'])
+            print("Got data for cluster %s.", cluster['Name'])
         except ClientError:
-            self.logger.exception("Couldn't get data for cluster %s.", cluster_id)
+            print("Couldn't get data for cluster %s.", cluster_id)
             raise
         else:
             return cluster
@@ -212,9 +210,9 @@ class EMR:
         """
         try:
             self.emr_client.terminate_job_flows(JobFlowIds=[cluster_id])
-            self.logger.info("Terminated cluster %s.", cluster_id)
+            print("Terminated cluster %s.", cluster_id)
         except ClientError:
-            self.logger.exception("Couldn't terminate cluster %s.", cluster_id)
+            print("Couldn't terminate cluster %s.", cluster_id)
             raise
 
     def add_step(self, cluster_id: str, name: str, args: List[str]) -> str:
@@ -239,9 +237,9 @@ class EMR:
                     }
                 }])
             step_id = response['StepIds'][0]
-            self.logger.info("Started step with ID %s", step_id)
+            print("Started step with ID %s", step_id)
         except ClientError:
-            self.logger.exception("Couldn't start step %s with URI %s.", name, args)
+            print("Couldn't start step %s with URI %s.", name, args)
             raise
         else:
             return step_id
@@ -274,9 +272,9 @@ class EMR:
         try:
             response = self.emr_client.list_steps(ClusterId=cluster_id)
             steps = response['Steps']
-            self.logger.info("Got %s steps for cluster %s.", len(steps), cluster_id)
+            print("Got %s steps for cluster %s.", len(steps), cluster_id)
         except ClientError:
-            self.logger.exception("Couldn't get steps for cluster %s.", cluster_id)
+            print("Couldn't get steps for cluster %s.", cluster_id)
             raise
         else:
             return steps
@@ -293,9 +291,9 @@ class EMR:
         try:
             response = self.emr_client.describe_step(ClusterId=cluster_id, StepId=step_id)
             step = response['Step']
-            self.logger.info("Got data for step %s.", step_id)
+            print("Got data for step %s.", step_id)
         except ClientError:
-            self.logger.exception("Couldn't get data for step %s.", step_id)
+            print("Couldn't get data for step %s.", step_id)
             raise
         else:
             return step

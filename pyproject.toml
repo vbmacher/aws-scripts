@@ -40,6 +40,7 @@ requests = "^2"
 pytest = "^6.2"
 
 [tool.poetry.scripts]
+aws-accounts='awsscripts.scripts.aws_accounts:main'
 emr-start='awsscripts.scripts.emr_start:main'
 emr-is-idle='awsscripts.scripts.emr_is_idle:main'
 emr-submit-spark='awsscripts.scripts.emr_submit_spark:main'

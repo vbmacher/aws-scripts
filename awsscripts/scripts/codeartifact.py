@@ -3,13 +3,17 @@ import os
 from os.path import splitext, basename
 import sys
 
-from awsscripts.accounts import accounts, default_account
+from awsscripts.helpers.accounts import Accounts
 
 
 def main():
+    accounts = Accounts()
+    default_account = accounts.get_default_account()
+    default_msg = f' (default={default_account})' if default_account else ''
+
     parser = argparse.ArgumentParser(description='CodeArtifact login/logout script')
     parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
-                        help=f"AWS account (default='{default_account}'). One of: {accounts.keys()}")
+                        help=f"AWS account{default_msg}. One of: {accounts.list()}")
     parser.add_argument('-l', '--login', action='store_true', help='Log in to CodeArtifact')
     parser.add_argument('-L', '--logout', action='store_true', help='Log out from CodeArtifact')
     parser.add_argument('--pip', action='store_true', help='Configure pip')

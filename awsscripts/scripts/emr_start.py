@@ -1,11 +1,15 @@
 import argparse
-from awsscripts.emr.helpers.spark import *
-from awsscripts.emr.helpers.emr import EMR
+from awsscripts.helpers.emr import EMR
 
-from awsscripts.accounts import accounts, default_account
+from awsscripts.helpers.accounts import Accounts
+from awsscripts.helpers.spark import *
 
 
 def main():
+    accounts = Accounts()
+    default_account = accounts.get_default_account()
+    default_msg = f' (default={default_account})' if default_account else ''
+
     parser = argparse.ArgumentParser(description='Starts EMR cluster')
     parser.add_argument('-n', '--name', metavar='NAME', type=str, required=True, help='cluster name')
     parser.add_argument('-i', '--instance', metavar='INSTANCE', default='m5.xlarge',
@@ -19,7 +23,7 @@ def main():
                         help='Bootstrap scripts (comma separated names).' +
                              ' Different scripts might be available on different accounts.')
     parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
-                        help=f"AWS account (default='{default_account}'). One of: {accounts.keys()}")
+                        help=f"AWS account{default_msg}. One of: {accounts.list()}")
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
 
     args = parser.parse_args()
