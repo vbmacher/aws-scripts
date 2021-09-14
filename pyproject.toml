@@ -25,6 +25,7 @@ packages = [
 enable = true
 vcs = "git"
 style = "semver"
+metadata = true
 
 [build-system]
 requires = ["poetry>=1.0.2", "poetry-dynamic-versioning"]
@@ -33,13 +34,15 @@ build-backend = "poetry.masonry.api"
 [tool.poetry.dependencies]
 python = "^3.7"
 boto3 = "^1.18"
+requests = "^2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
 
 [tool.poetry.scripts]
-emr-start='awsscripts.emr.scripts.emr_start:main'
-emr-is-idle='awsscripts.emr.scripts.emr_is_idle:main'
-emr-submit-spark='awsscripts.emr.scripts.emr_submit_spark:main'
-emr-terminate='awsscripts.emr.scripts.emr_terminate:main'
-codeartifact='awsscripts.emr.scripts.codeartifact:main'
+emr-start='awsscripts.scripts.emr_start:main'
+emr-is-idle='awsscripts.scripts.emr_is_idle:main'
+emr-submit-spark='awsscripts.scripts.emr_submit_spark:main'
+emr-terminate='awsscripts.scripts.emr_terminate:main'
+codeartifact='awsscripts.scripts.codeartifact:main'
+mwaa='awsscripts.scripts.mwaa_cli:main'

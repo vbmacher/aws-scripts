@@ -3,20 +3,20 @@ import os
 from os.path import splitext, basename
 import sys
 
-from awsscripts.emr.helpers.aws_accounts import aws_accounts, default_aws_account
+from awsscripts.accounts import accounts, default_account
 
 
 def main():
     parser = argparse.ArgumentParser(description='CodeArtifact login/logout script')
-    parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_aws_account,
-                        help=f"AWS account (default='{default_aws_account}'). One of: {aws_accounts.keys()}")
+    parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
+                        help=f"AWS account (default='{default_account}'). One of: {accounts.keys()}")
     parser.add_argument('-l', '--login', action='store_true', help='Log in to CodeArtifact')
     parser.add_argument('-L', '--logout', action='store_true', help='Log out from CodeArtifact')
     parser.add_argument('--pip', action='store_true', help='Configure pip')
     parser.add_argument('--twine', action='store_true', help='Configure twine')
 
     args = parser.parse_args()
-    env = aws_accounts[args.account]["codeartifact"]
+    env = accounts[args.account]["codeartifact"]
 
     if not args.login and not args.logout:
         print(f"Type `{splitext(basename(__file__))[0]} --help` for usage information.")

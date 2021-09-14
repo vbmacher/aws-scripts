@@ -1,4 +1,4 @@
-aws_accounts = {
+accounts = {
     'your_account': {
         'emr': {
             "job_flow_role": "EMR_EC2_DefaultRole",
@@ -35,4 +35,4 @@ aws_accounts = {
     }
 }
 
-default_aws_account = 'your_account'
+default_account = 'your_account'

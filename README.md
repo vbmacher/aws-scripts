@@ -17,11 +17,17 @@ AWS Scripts installation (using `pip`):
 python3 -m pip install aws-scripts
 ```
 
+### AWS CLI configuration
+
 Before using, please set up AWS CLI configuration:
 
 - `.aws/config`: AWS configuration (e.g. default region to use)
 - `.aws/credentials`: AWS key and secret of the AWS account. 
   For more information, visit [AWS CLI configuration][cli-config].
+
+### AWSome scripts accounts
+
+TODO
 
 ## Build
 
@@ -31,8 +37,19 @@ List of prerequisites:
 - https://github.com/mtkennerly/poetry-dynamic-versioning
 
 ```
-python3 -m pip install --upgrade build
-python3 -m build
+poetry build
+```
+
+## Local testing
+
+```
+poetry install
+```
+
+## Publish to PyPi
+
+```
+poetry publish
 ```
 
 ## Usage
@@ -52,7 +69,7 @@ List of available scripts:
 
 List of available scripts:
 
-- `mwaa-cli` - Executes Airflow CLI command remotely on any MWAA environment
+- `mwaa` - Executes Airflow CLI command remotely on any MWAA environment
 
 ### CodeArtifact
 

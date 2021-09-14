@@ -2,8 +2,7 @@ import argparse
 from awsscripts.emr.helpers.spark import *
 from awsscripts.emr.helpers.emr import EMR
 
-from awsscripts.emr.helpers.aws_accounts import aws_accounts, default_aws_account
-from pbr.version import VersionInfo
+from awsscripts.accounts import accounts, default_account
 
 
 def main():
@@ -19,13 +18,13 @@ def main():
                         default="python,jupyter", type=str,
                         help='Bootstrap scripts (comma separated names).' +
                              ' Different scripts might be available on different accounts.')
-    parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_aws_account,
-                        help=f"AWS account (default='{default_aws_account}'). One of: {aws_accounts.keys()}")
+    parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
+                        help=f"AWS account (default='{default_account}'). One of: {accounts.keys()}")
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
 
     args = parser.parse_args()
 
-    environment = aws_accounts[args.account]["emr"]
+    environment = accounts[args.account]["emr"]
     configurations = \
         get_spark_configurations(args.instance, args.count) + \
         get_hdfs_site_configuration() + \
@@ -42,16 +41,17 @@ def main():
         print("Region: " + environment['region'])
         print(configurations)
 
-    version = VersionInfo("aws-scripts").release_string()
-    emr_scripts_boot = [{
-        'name': f'Install aws-scripts {version}',
-        'path': environment["bootstrap_scripts"]["install_aws_scripts"],
-        'args': [version]
-    }]
+    # TODO: upload bootstrap scripts
+    # TODO: make configurable
+    # emr_scripts_boot = [{
+    #     'name': f'Install aws-scripts {__version__}',
+    #     'path': environment["bootstrap_scripts"]["install_aws_scripts"],
+    #     'args': [__version__]
+    # }]
     if args.boot == "":
-        boot = emr_scripts_boot
+        boot = []  # emr_scripts_boot
     else:
-        boot = emr_scripts_boot + [{
+        boot = [{  # emr_scripts_boot + [{
             'name': 'Run script: ' + b.strip(),
             'path': environment["bootstrap_scripts"][b.strip()],
             'args': []
