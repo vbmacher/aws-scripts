@@ -63,6 +63,13 @@ open and edit the file to fill the values in.
 This setup is required to be done for all supported AWS services, if you want to use AWSome script for those
 services.
 
+Note: `aws-accounts` can autofill the settings for some services if you give it a sample. For example, in order to
+autofill an EMR configuration, type:
+
+```
+aws-accounts -a myaccount -cemr j-D9OAIJX09SJ3
+```
+
 ## Build
 
 List of prerequisites:
