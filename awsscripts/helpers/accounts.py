@@ -8,7 +8,6 @@ templates = {
     'emr': {
         'job_flow_role': 'EMR_EC2_DefaultRole',
         'service_role': 'EMR_DefaultRole',
-        'region': 'TODO',
         'security_groups': {
             'AdditionalSlaveSecurityGroups': [
                 # TODO

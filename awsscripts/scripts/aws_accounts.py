@@ -2,6 +2,10 @@ import argparse
 from awsscripts.helpers.accounts import Accounts, templates
 
 
+def configure_emr():
+    pass
+
+
 def main():
     parser = argparse.ArgumentParser(description='Manage AWS accounts')
     parser.add_argument('-a', '--account', metavar='ACCOUNT', type=str, required=True, help='AWS account name')
@@ -25,3 +29,7 @@ def main():
 
     if args.remove:
         accounts.remove_template(args.account, args.remove)
+
+
+if __name__ == "__main__":
+    main()

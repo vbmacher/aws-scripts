@@ -43,7 +43,6 @@ def main():
     if args.verbose:
         print("EC2 Instance: " + args.instance)
         print("Volume size in GB: " + args.size)
-        print("Region: " + environment['region'])
         print(configurations)
 
     if args.boot == "":
@@ -55,7 +54,7 @@ def main():
             'args': []
         } for b in args.boot]
 
-    emr = EMR(region=environment['region'])
+    emr = EMR()
     cluster_id = emr.start_cluster(
         name=args.name,
         log_uri=environment['log_uri'],

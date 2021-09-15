@@ -4,7 +4,7 @@ EMR - Elastic Map Reduce
 Helper class to manage EMR clusters using Boto3 Python library.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -12,8 +12,8 @@ from botocore.exceptions import ClientError
 
 class EMR:
 
-    def __init__(self, region: str):
-        self.emr_client = boto3.client('emr', region_name=region)
+    def __init__(self):
+        self.emr_client = boto3.client('emr')
 
     def start_cluster(self,
                       name: str,
@@ -244,40 +244,27 @@ class EMR:
         else:
             return step_id
 
-    def add_spark_jar_step(self, cluster_id: str, name: str, script_uri: str, klass: str, script_args: List[str]) -> str:
+    def add_spark_step(self, cluster_id: str, name: str, application_uri: str,
+                       jars: List[str], pyfiles: List[str], classname: Optional[str], arguments: List[str]) -> str:
         """
-        Adds a job step to the specified cluster. This example adds a Spark
-        step, which is run by the cluster as soon as it is added.
+        Adds a job step to the specified cluster.
 
         :param cluster_id: The ID of the cluster.
         :param name: The name of the step.
-        :param klass: Class name
-        :param script_uri: The URI where the Python script is stored.
-        :param script_args: Arguments to pass to the script.
+        :param application_uri: The URI of the JAR/Python application file
+        :param jars: List of additional jars (can be empty)
+        :param pyfiles: List of additional Python files (.zip, .egg, .py)
+        :param classname: Class name (only if Java application is submitted)
+        :param arguments: Arguments to pass to the application.
         :return: The ID of the newly added step.
         """
+        jars_arg = ['--jars', ','.join(jars)] if len(jars) == 0 else []
+        pyfiles_arg = ['--pyfiles', ','.join(pyfiles)] if len(pyfiles) == 0 else []
+        class_arg = ['--class', classname] if classname else []
         return self.add_step(
             cluster_id, name,
-            ['spark-submit', '--deploy-mode', 'cluster', '--master', 'yarn', '--class', klass, script_uri, *script_args]
-        )
-
-    def add_spark_python_step(self, cluster_id: str, name: str, script_uri: str, pyfiles: List[str],
-                              script_args: List[str]) -> str:
-        """
-        Adds a job step to the specified cluster. This example adds a Spark
-        step, which is run by the cluster as soon as it is added.
-
-        :param cluster_id: The ID of the cluster.
-        :param name: The name of the step.
-        :param pyfiles: Additional python files (.zip, .egg, .py)
-        :param script_uri: The URI where the Python script is stored.
-        :param script_args: Arguments to pass to the script.
-        :return: The ID of the newly added step.
-        """
-        pyfiles_arg = ['--pyfiles'] + [f for f in pyfiles] if len(pyfiles) == 0 else []
-        return self.add_step(
-            cluster_id, name,
-            ['spark-submit', '--deploy-mode', 'cluster', '--master', 'yarn', *pyfiles_arg, script_uri, *script_args]
+            ['spark-submit', '--deploy-mode', 'cluster', '--master', 'yarn', *jars_arg, *pyfiles_arg, *class_arg,
+             application_uri, *arguments]
         )
 
     def list_steps(self, cluster_id: str) -> Dict[str, Any]:
