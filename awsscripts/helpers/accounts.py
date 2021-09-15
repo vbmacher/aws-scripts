@@ -4,41 +4,7 @@ AWS Accounts helper class
 import json
 from pathlib import Path
 
-templates = {
-    'emr': {
-        'job_flow_role': 'EMR_EC2_DefaultRole',
-        'service_role': 'EMR_DefaultRole',
-        'security_groups': {
-            'AdditionalSlaveSecurityGroups': [
-                # TODO
-            ],
-            'EmrManagedSlaveSecurityGroup': 'TODO',
-            'EmrManagedMasterSecurityGroup': 'TODO',
-            'AdditionalMasterSecurityGroups': [
-                # TODO
-            ]
-        },
-        'subnets': [
-            # TODO
-        ],
-        'keyname': 'TODO',
-        'tags': [
-            {
-                'Key': 'TODO',
-                'Value': 'TODO'
-            }
-        ],
-        'log_uri': 'TODO',
-        'bootstrap_scripts': {
-            # TODO
-        }
-    },
-    'codeartifact': {
-        'repository': 'TODO',
-        'domain': 'TODO',
-        'domain-owner': 'TODO'
-    }
-}
+from awsscripts.helpers.templates import templates
 
 
 class Accounts:
@@ -96,6 +62,17 @@ class Accounts:
             content.pop(template_name, None)
             self._write_content(account, content)
             print(f'"{template_name}" template has been removed from file {self._get_account_path(account)}')
+
+    def replace_template(self, account, template_name, template_content):
+        if template_name not in templates:
+            print(f'Unknown template name. Available templates: {templates.keys()}')
+            return
+
+        self._create_account(account)
+        content = self._load_content(account)
+        content[template_name] = template_content
+        self._write_content(account, content)
+        print(f'"{template_name}" template was updated in file {self._get_account_path(account)}.')
 
     def __getitem__(self, key):
         return self._load_content(key)

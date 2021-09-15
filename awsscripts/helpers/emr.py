@@ -153,6 +153,8 @@ class EMR:
                     'EmrManagedSlaveSecurityGroup': security_groups["EmrManagedSlaveSecurityGroup"],
                     'AdditionalMasterSecurityGroups': security_groups["AdditionalMasterSecurityGroups"],
                     'AdditionalSlaveSecurityGroups': security_groups["AdditionalSlaveSecurityGroups"]
+
+                    # TODO: ServiceAccessSecurityGroup
                 },
                 Steps=[{
                     'Name': step['Name'],
@@ -194,7 +196,7 @@ class EMR:
         try:
             response = self.emr_client.describe_cluster(ClusterId=cluster_id)
             cluster = response['Cluster']
-            print("Got data for cluster %s.", cluster['Name'])
+            print(f'Got data for cluster "{cluster["Name"]}"')
         except ClientError:
             print("Couldn't get data for cluster %s.", cluster_id)
             raise
@@ -210,9 +212,9 @@ class EMR:
         """
         try:
             self.emr_client.terminate_job_flows(JobFlowIds=[cluster_id])
-            print("Terminated cluster %s.", cluster_id)
+            print(f"Terminated cluster {cluster_id}")
         except ClientError:
-            print("Couldn't terminate cluster %s.", cluster_id)
+            print(f"Couldn't terminate cluster {cluster_id}")
             raise
 
     def add_step(self, cluster_id: str, name: str, args: List[str]) -> str:
@@ -237,9 +239,9 @@ class EMR:
                     }
                 }])
             step_id = response['StepIds'][0]
-            print("Started step with ID %s", step_id)
+            print(f"Started step {step_id}")
         except ClientError:
-            print("Couldn't start step %s with URI %s.", name, args)
+            print(f"Couldn't start step '{name}' with URI {args}")
             raise
         else:
             return step_id
@@ -278,9 +280,9 @@ class EMR:
         try:
             response = self.emr_client.list_steps(ClusterId=cluster_id)
             steps = response['Steps']
-            print("Got %s steps for cluster %s.", len(steps), cluster_id)
+            print(f"Got {len(steps)} steps for cluster {cluster_id}")
         except ClientError:
-            print("Couldn't get steps for cluster %s.", cluster_id)
+            print(f"Couldn't get steps for cluster {cluster_id}")
             raise
         else:
             return steps
@@ -297,9 +299,9 @@ class EMR:
         try:
             response = self.emr_client.describe_step(ClusterId=cluster_id, StepId=step_id)
             step = response['Step']
-            print("Got data for step %s.", step_id)
+            print(f"Got data for step {step_id}")
         except ClientError:
-            print("Couldn't get data for step %s.", step_id)
+            print(f"Couldn't get data for step {step_id}")
             raise
         else:
             return step
