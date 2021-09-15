@@ -41,7 +41,7 @@ class Template:
 
     @staticmethod
     def configure_emr_from_cluster(cluster_id: str):
-        emr = EMR()
+        emr = EMR(verbose=True)
         cluster = emr.describe_cluster(cluster_id)
         ec2 = cluster['Ec2InstanceAttributes']
 
