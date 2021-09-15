@@ -13,15 +13,16 @@ def main():
     parser = argparse.ArgumentParser(description='Starts EMR cluster')
     parser.add_argument('-n', '--name', metavar='NAME', type=str, required=True, help='cluster name')
     parser.add_argument('-i', '--instance', metavar='INSTANCE', default='m5.xlarge',
-                        help='master/slave nodes instance type')
+                        help='master/core nodes instance type')
     parser.add_argument('-e', '--emr', metavar='LABEL', default='emr-6.3.0', help='EMR release label')
     parser.add_argument('-p', '--protect', help='Set cluster as TerminationProtected', action='store_true')
-    parser.add_argument('-c', '--count', metavar='N', default=1, type=int, help='Slave node instances count')
+    parser.add_argument('-c', '--count', metavar='N', default=1, type=int, help='Core node instances count')
     parser.add_argument('-s', '--size', metavar='GB', default=100, type=int, help='Volume size in GB')
-    parser.add_argument('-b', '--boot', metavar='NAME',
-                        default="python,jupyter", type=str,
-                        help='Bootstrap scripts (comma separated names).' +
-                             ' Different scripts might be available on different accounts.')
+    parser.add_argument('-b', '--boot', metavar='PATH', type=str, nargs='*',
+                        help='Bootstrap scripts (path to S3).')
+    parser.add_argument('-A', '--applications', metavar='APP', nargs='*',
+                        default=['Spark', 'JupyterHub', 'JupyterEnterpriseGateway', 'Hadoop', 'Livy'],
+                        help='EMR applications (default: Spark,JupyterHub,JupyterEnterpriseGateway,Hadoop,Livy)')
     parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
                         help=f"AWS account{default_msg}. One of: {accounts.list()}")
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
@@ -45,21 +46,14 @@ def main():
         print("Region: " + environment['region'])
         print(configurations)
 
-    # TODO: upload bootstrap scripts
-    # TODO: make configurable
-    # emr_scripts_boot = [{
-    #     'name': f'Install aws-scripts {__version__}',
-    #     'path': environment["bootstrap_scripts"]["install_aws_scripts"],
-    #     'args': [__version__]
-    # }]
     if args.boot == "":
-        boot = []  # emr_scripts_boot
+        boot = []
     else:
-        boot = [{  # emr_scripts_boot + [{
+        boot = [{
             'name': 'Run script: ' + b.strip(),
-            'path': environment["bootstrap_scripts"][b.strip()],
+            'path': b,
             'args': []
-        } for b in args.boot.split(",")]
+        } for b in args.boot]
 
     emr = EMR(region=environment['region'])
     cluster_id = emr.start_cluster(
@@ -67,10 +61,7 @@ def main():
         log_uri=environment['log_uri'],
         keep_alive=True,
         protect=args.protect,
-        applications=[
-            # TODO: make it configurable
-            'Spark', 'Ganglia', 'JupyterHub', 'JupyterEnterpriseGateway', 'Hadoop', 'Livy'
-        ],
+        applications=args.applications,
         job_flow_role=environment['job_flow_role'],
         service_role=environment['service_role'],
         emr_label=args.emr,

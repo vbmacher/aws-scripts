@@ -4,11 +4,13 @@ from datetime import datetime, timedelta, timezone
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Determines if an EMR cluster is idle at least 2 hours')
+    parser = argparse.ArgumentParser(description='Determines if an EMR cluster is idle')
     parser.add_argument('-c', '--cluster', metavar='CLUSTER_ID', type=str, required=True, help='cluster ID')
+    parser.add_argument('-i', '--idleness', metavar='HOURS', type=int, default=2,
+                        help='Idleness time in hours (default=2)')
 
     args = parser.parse_args()
-    min_age = timedelta(hours=2)
+    min_age = timedelta(hours=args.idleness)
     period_seconds = 300  # 5-minute period, available for 63 days
 
     cloudwatch = boto3.client('cloudwatch')

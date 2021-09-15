@@ -105,7 +105,7 @@ class EMR:
                                         "EbsBlockDeviceConfigs": [
                                             {
                                                 "VolumeSpecification": {
-                                                    "SizeInGB": 32,
+                                                    "SizeInGB": volume_size_gb,
                                                     "VolumeType": "gp2"
                                                 },
                                                 "VolumesPerInstance": 2
@@ -244,7 +244,7 @@ class EMR:
         else:
             return step_id
 
-    def add_spark_step(self, cluster_id: str, name: str, script_uri: str, klass: str, script_args: List[str]) -> str:
+    def add_spark_jar_step(self, cluster_id: str, name: str, script_uri: str, klass: str, script_args: List[str]) -> str:
         """
         Adds a job step to the specified cluster. This example adds a Spark
         step, which is run by the cluster as soon as it is added.
@@ -259,6 +259,25 @@ class EMR:
         return self.add_step(
             cluster_id, name,
             ['spark-submit', '--deploy-mode', 'cluster', '--master', 'yarn', '--class', klass, script_uri, *script_args]
+        )
+
+    def add_spark_python_step(self, cluster_id: str, name: str, script_uri: str, pyfiles: List[str],
+                              script_args: List[str]) -> str:
+        """
+        Adds a job step to the specified cluster. This example adds a Spark
+        step, which is run by the cluster as soon as it is added.
+
+        :param cluster_id: The ID of the cluster.
+        :param name: The name of the step.
+        :param pyfiles: Additional python files (.zip, .egg, .py)
+        :param script_uri: The URI where the Python script is stored.
+        :param script_args: Arguments to pass to the script.
+        :return: The ID of the newly added step.
+        """
+        pyfiles_arg = ['--pyfiles'] + [f for f in pyfiles] if len(pyfiles) == 0 else []
+        return self.add_step(
+            cluster_id, name,
+            ['spark-submit', '--deploy-mode', 'cluster', '--master', 'yarn', *pyfiles_arg, script_uri, *script_args]
         )
 
     def list_steps(self, cluster_id: str) -> Dict[str, Any]:

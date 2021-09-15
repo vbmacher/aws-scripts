@@ -20,7 +20,6 @@ def main():
     if args.default:
         accounts.make_default(args.account)
 
-
     if args.create:
         accounts.add_template(args.account, args.create)
 
