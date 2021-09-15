@@ -17,7 +17,8 @@ def main():
     parser.add_argument('-e', '--emr', metavar='LABEL', default='emr-6.3.0', help='EMR release label')
     parser.add_argument('-p', '--protect', help='Set cluster as TerminationProtected', action='store_true')
     parser.add_argument('-c', '--count', metavar='N', default=1, type=int, help='Core node instances count')
-    parser.add_argument('-s', '--size', metavar='GB', default=100, type=int, help='Volume size in GB')
+    parser.add_argument('-s', '--size', metavar='GB', default=100, type=int, help='EBS volume size in GB')
+    parser.add_argument('-S', '--spot', help='Use Spot core nodes', action='store_true')
     parser.add_argument('-b', '--boot', metavar='PATH', type=str, nargs='*',
                         help='Bootstrap scripts (path to S3).')
     parser.add_argument('-A', '--applications', metavar='APP', nargs='*',
@@ -45,16 +46,15 @@ def main():
         print("Volume size in GB: " + args.size)
         print(configurations)
 
-    if args.boot == "":
-        boot = []
-    else:
+    boot = []
+    if args.boot:
         boot = [{
             'name': 'Run script: ' + b.strip(),
             'path': b,
             'args': []
         } for b in args.boot]
 
-    emr = EMR()
+    emr = EMR(args.verbose)
     cluster_id = emr.start_cluster(
         name=args.name,
         log_uri=environment['log_uri'],
@@ -75,9 +75,10 @@ def main():
         security_groups=environment['security_groups'],
         subnets=environment['subnets'],
         configurations=configurations,
-        keyname=environment['keyname'],
+        keyname=environment['keyname'] if 'keyname' in environment else None,
         volume_size_gb=args.size,
-        bootstrap_scripts=boot
+        bootstrap_scripts=boot,
+        spot=args.spot
     )
 
     print(cluster_id)

@@ -12,8 +12,9 @@ from botocore.exceptions import ClientError
 
 class EMR:
 
-    def __init__(self):
+    def __init__(self, verbose: Optional[bool]):
         self.emr_client = boto3.client('emr')
+        self.verbose = verbose
 
     def start_cluster(self,
                       name: str,
@@ -32,22 +33,24 @@ class EMR:
                       security_groups: Dict[str, Any],
                       subnets: Dict[str, Any],
                       configurations: List[Dict[str, Any]],
-                      keyname: str,
+                      keyname: Optional[str],
                       volume_size_gb: int,
-                      bootstrap_scripts: List[Dict[str, Any]]) -> str:
+                      bootstrap_scripts: List[Dict[str, Any]],
+                      spot: Optional[bool]) -> str:
 
         """
         Runs a job flow with the specified steps. A job flow creates a cluster of
         instances and adds steps to be run on the cluster. Steps added to the cluster
         are run as soon as the cluster is ready.
 
+        :param spot: Use Spot core nodes
         :param bootstrap_scripts: Bootstrap scripts array. Structure:
                     [{
                        'name': 'string',
                        'path': 'string',
                        'args': ['string']
                     }]
-        :param keyname: SSH key name to use
+        :param keyname: SSH key name to use (optional)
         :param volume_size_gb: volume size in GB (x2)
         :param configurations: configurations of this EMR cluster
         :param subnets: list of available subnets
@@ -78,84 +81,87 @@ class EMR:
         :return: The ID of the newly created cluster.
         """
 
-        # TODO: be able to configure instance fleets externally
+        instances = {
+            'KeepJobFlowAliveWhenNoSteps': keep_alive,
+            'TerminationProtected': protect,
+            'InstanceFleets': [
+                {
+                    "InstanceFleetType": "MASTER",
+                    "TargetOnDemandCapacity": 1,
+                    "TargetSpotCapacity": 0,
+                    "LaunchSpecifications": {
+                        "OnDemandSpecification": {
+                            "AllocationStrategy": "LOWEST_PRICE"
+                        }
+                    },
+                    "InstanceTypeConfigs": [
+                        {
+                            "WeightedCapacity": 1,
+                            "EbsConfiguration": {
+                                "EbsBlockDeviceConfigs": [
+                                    {
+                                        "VolumeSpecification": {
+                                            "SizeInGB": volume_size_gb,
+                                            "VolumeType": "gp2"
+                                        },
+                                        "VolumesPerInstance": 1
+                                    }
+                                ]
+                            },
+                            "BidPriceAsPercentageOfOnDemandPrice": 100,
+                            "InstanceType": master_instance
+                        }
+                    ],
+                    "Name": "Master"
+                },
+                {
+                    "InstanceFleetType": "CORE",
+                    "TargetOnDemandCapacity": 1 * node_count if not spot else 0,
+                    "TargetSpotCapacity": 1 * node_count if spot else 0,
+                    "LaunchSpecifications": {
+                        "OnDemandSpecification": {
+                            "AllocationStrategy": "LOWEST_PRICE"
+                        }
+                    },
+                    "InstanceTypeConfigs": [
+                        {
+                            "WeightedCapacity": 1,
+                            "EbsConfiguration": {
+                                "EbsBlockDeviceConfigs": [
+                                    {
+                                        "VolumeSpecification": {
+                                            "SizeInGB": volume_size_gb,
+                                            "VolumeType": "gp2"
+                                        },
+                                        "VolumesPerInstance": 1
+                                    }
+                                ], "EbsOptimized": True
+                            },
+                            "BidPriceAsPercentageOfOnDemandPrice": 100,
+                            "InstanceType": node_instance
+                        }
+                    ], "Name": "Core"
+                }
+            ],
+            'Ec2SubnetIds': subnets,
+            'EmrManagedMasterSecurityGroup': security_groups["EmrManagedMasterSecurityGroup"],
+            'EmrManagedSlaveSecurityGroup': security_groups["EmrManagedSlaveSecurityGroup"]
+        }
+        if 'AdditionalMasterSecurityGroups' in security_groups:
+            instances['AdditionalMasterSecurityGroups'] = security_groups['AdditionalMasterSecurityGroups']
+        if 'AdditionalSlaveSecurityGroups' in security_groups:
+            instances['AdditionalSlaveSecurityGroups'] = security_groups['AdditionalSlaveSecurityGroups']
+        if 'ServiceAccessSecurityGroup' in security_groups:
+            instances['ServiceAccessSecurityGroup'] = security_groups['ServiceAccessSecurityGroup']
+        if keyname:
+            instances['Ec2KeyName'] = keyname
         try:
-            weight = 48
+
             response = self.emr_client.run_job_flow(
                 Name=name,
                 LogUri=log_uri,
                 ReleaseLabel=emr_label,
-                Instances={
-                    'KeepJobFlowAliveWhenNoSteps': keep_alive,
-                    'TerminationProtected': protect,
-                    'InstanceFleets': [
-                        {
-                            "InstanceFleetType": "MASTER",
-                            "TargetOnDemandCapacity": 1,
-                            "TargetSpotCapacity": 0,
-                            "LaunchSpecifications": {
-                                "OnDemandSpecification": {
-                                    "AllocationStrategy": "LOWEST_PRICE"
-                                }
-                            },
-                            "InstanceTypeConfigs": [
-                                {
-                                    "WeightedCapacity": 1,
-                                    "EbsConfiguration": {
-                                        "EbsBlockDeviceConfigs": [
-                                            {
-                                                "VolumeSpecification": {
-                                                    "SizeInGB": volume_size_gb,
-                                                    "VolumeType": "gp2"
-                                                },
-                                                "VolumesPerInstance": 2
-                                            }
-                                        ]
-                                    },
-                                    "BidPriceAsPercentageOfOnDemandPrice": 100,
-                                    "InstanceType": master_instance
-                                }
-                            ],
-                            "Name": "Master"
-                        },
-                        {
-                            "InstanceFleetType": "CORE",
-                            "TargetOnDemandCapacity": weight * node_count,
-                            "TargetSpotCapacity": 0,
-                            "LaunchSpecifications": {
-                                "OnDemandSpecification": {
-                                    "AllocationStrategy": "LOWEST_PRICE"
-                                }
-                            },
-                            "InstanceTypeConfigs": [
-                                {
-                                    "WeightedCapacity": weight,
-                                    "EbsConfiguration": {
-                                        "EbsBlockDeviceConfigs": [
-                                            {
-                                                "VolumeSpecification": {
-                                                    "SizeInGB": volume_size_gb,
-                                                    "VolumeType": "gp2"
-                                                },
-                                                "VolumesPerInstance": 2
-                                            }
-                                        ], "EbsOptimized": True
-                                    },
-                                    "BidPriceAsPercentageOfOnDemandPrice": 100,
-                                    "InstanceType": node_instance
-                                }
-                            ], "Name": "Core"
-                        }
-                    ],
-                    'Ec2SubnetIds': subnets,
-                    'Ec2KeyName': keyname,
-                    'EmrManagedMasterSecurityGroup': security_groups["EmrManagedMasterSecurityGroup"],
-                    'EmrManagedSlaveSecurityGroup': security_groups["EmrManagedSlaveSecurityGroup"],
-                    'AdditionalMasterSecurityGroups': security_groups["AdditionalMasterSecurityGroups"],
-                    'AdditionalSlaveSecurityGroups': security_groups["AdditionalSlaveSecurityGroups"]
-
-                    # TODO: ServiceAccessSecurityGroup
-                },
+                Instances=instances,
                 Steps=[{
                     'Name': step['Name'],
                     'ActionOnFailure': 'CONTINUE',
@@ -179,9 +185,9 @@ class EMR:
                 Tags=tags
             )
             cluster_id = response['JobFlowId']
-            print("Created cluster %s.", cluster_id)
+            self._vprint(f"Created cluster {cluster_id}")
         except ClientError:
-            print("Couldn't create cluster.")
+            self._vprint("Couldn't create cluster.")
             raise
         else:
             return cluster_id
@@ -196,9 +202,9 @@ class EMR:
         try:
             response = self.emr_client.describe_cluster(ClusterId=cluster_id)
             cluster = response['Cluster']
-            print(f'Got data for cluster "{cluster["Name"]}"')
+            self._vprint(f'Got data for cluster "{cluster["Name"]}"')
         except ClientError:
-            print("Couldn't get data for cluster %s.", cluster_id)
+            self._vprint(f"Couldn't get data for cluster {cluster_id}")
             raise
         else:
             return cluster
@@ -212,9 +218,9 @@ class EMR:
         """
         try:
             self.emr_client.terminate_job_flows(JobFlowIds=[cluster_id])
-            print(f"Terminated cluster {cluster_id}")
+            self._vprint(f"Terminated cluster {cluster_id}")
         except ClientError:
-            print(f"Couldn't terminate cluster {cluster_id}")
+            self._vprint(f"Couldn't terminate cluster {cluster_id}")
             raise
 
     def add_step(self, cluster_id: str, name: str, args: List[str]) -> str:
@@ -239,9 +245,9 @@ class EMR:
                     }
                 }])
             step_id = response['StepIds'][0]
-            print(f"Started step {step_id}")
+            self._vprint(f"Started step {step_id}")
         except ClientError:
-            print(f"Couldn't start step '{name}' with URI {args}")
+            self._vprint(f"Couldn't start step '{name}' with URI {args}")
             raise
         else:
             return step_id
@@ -280,9 +286,9 @@ class EMR:
         try:
             response = self.emr_client.list_steps(ClusterId=cluster_id)
             steps = response['Steps']
-            print(f"Got {len(steps)} steps for cluster {cluster_id}")
+            self._vprint(f"Got {len(steps)} steps for cluster {cluster_id}")
         except ClientError:
-            print(f"Couldn't get steps for cluster {cluster_id}")
+            self._vprint(f"Couldn't get steps for cluster {cluster_id}")
             raise
         else:
             return steps
@@ -299,9 +305,13 @@ class EMR:
         try:
             response = self.emr_client.describe_step(ClusterId=cluster_id, StepId=step_id)
             step = response['Step']
-            print(f"Got data for step {step_id}")
+            self._vprint(f"Got data for step {step_id}")
         except ClientError:
-            print(f"Couldn't get data for step {step_id}")
+            self._vprint(f"Couldn't get data for step {step_id}")
             raise
         else:
             return step
+
+    def _vprint(self, msg: str):
+        if self.verbose:
+            print(msg)
