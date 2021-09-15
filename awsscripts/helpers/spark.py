@@ -7,50 +7,57 @@ from awsscripts.helpers.ec2 import ec2_instances
 def get_spark_configurations(instance_type: str, node_count: int) -> List[Dict[str, Any]]:
     """
     Generates Spark configurations for creating EMR cluster, based on EC2 instance type and node count.
-    Inspired by https://www.richakhandelwal.com/tuning-your-spark-jobs/
+    According to: https://github.com/vbmacher/knowledge-notes/blob/master/spark/spark-parameters/spark-parameters.md
 
     :param instance_type: AWS instance type
     :param node_count: Node count (including master)
     :return: Configurations of Spark parameters (list)
     """
 
-    # TODO: Revise!
     ec2 = ec2_instances[instance_type]
+    gbits2gbytes = 1.07374
 
-    spark_cores = 1
-    spark_executors_per_node = ec2["cpu"] / spark_cores
-
-    memory_per_node = ec2["memory"] / spark_executors_per_node
-    yarn_container_overhead = 0.1 * memory_per_node
-
-    spark_executor_memory = memory_per_node - yarn_container_overhead
-    spark_default_parallelism = spark_executors_per_node * spark_cores * 2
-
-    # spark_memory_fraction = 0.6
-    # spark_memory_storage_fraction = 0.5
-    # spark_task_memory = (spark_executor_memory * spark_memory_fraction * spark_memory_storage_fraction) / spark_cores
+    spark_cores = 5
+    spark_executors_per_node = (ec2["cpu"] - 1) / spark_cores
+    spark_executors = max(1, int(spark_executors_per_node * node_count - 1))  # 1 executor for ApplicationMaster in YARN
+    spark_raw_memory_per_executor = ec2["memory"] / spark_executors_per_node
+    spark_memory_overhead = max(0.384, 0.07 * spark_raw_memory_per_executor)
+    spark_memory_per_executor = int((spark_raw_memory_per_executor - spark_memory_overhead) * gbits2gbytes)
+    spark_driver_cores = ec2["cpu"]
+    spark_driver_memory = int(math.floor(spark_memory_per_executor * 0.6))
+    spark_default_parallelism = int(math.ceil(spark_executors_per_node * spark_cores * 2))
 
     return [
         {
             'Classification': 'spark',
             'Properties': {
                 'maximizeResourceAllocation': 'false',
-                'spark.sql.parquet.fs.optimized.committer.optimization-enabled': 'true',
-                'spark.network.timeout': '1500',
-                'spark.sql.broadcastTimeout': '600'
+                'spark.sql.parquet.fs.optimized.committer.optimization-enabled': 'true'
             }
         },
         {
             "Classification": "spark-defaults",
             "Properties": {
-                "spark.shuffle.service.enabled": "true",
-                "spark.dynamicAllocation.enabled": "true",
-                "spark.driver.memory": str(math.ceil(spark_executor_memory)) + "g",
-                "spark.executor.memory": str(math.ceil(spark_executor_memory)) + "g",
-                "spark.driver.cores": str(spark_cores),
-                "spark.executor.cores": str(spark_cores),
-                "spark.executor.instances": str(math.ceil(spark_executors_per_node * node_count)),
-                "spark.default.parallelism": str(math.ceil(spark_default_parallelism))
+                'spark.network.timeout': '300s',
+                'spark.sql.broadcastTimeout': '108000',
+                'spark.sql.hive.filesourcePartitionFileCacheSize': '1073741824',
+                'spark.rpc.message.maxSize': '2047',
+                'spark.rpc.askTimeout': '300',
+                'spark.task.maxFailures': '10',
+                'spark.serializer': 'org.apache.spark.serializer.KryoSerializer',
+                'spark.shuffle.service.enabled': 'true',
+                'spark.dynamicAllocation.enabled': 'true',
+                'spark.executor.heartbeatInterval': '20s',
+                'spark.executor.extraJavaOptions': '-XX:+UseG1GC',
+                'spark.cleaner.periodicGC.interval': '600min',
+                'spark.executor.cores': f'{spark_cores}',
+                'spark.executor.memory': f'{spark_memory_per_executor}G',
+                'spark.executor.instances': f'{spark_executors}',
+                'spark.driver.cores': f'{spark_driver_cores}',
+                'spark.driver.memory': f'{spark_driver_memory}G',
+                'spark.driver.maxResultSize': f'{spark_driver_memory}G',
+                'spark.default.parallelism': f'{spark_default_parallelism}',
+                'spark.sql.shuffle.partitions': '1200'
             }
         }
     ]
