@@ -4,7 +4,7 @@ EMR - Elastic Map Reduce
 Helper class to manage EMR clusters using Boto3 Python library.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 
 import boto3
 from botocore.exceptions import ClientError
@@ -253,7 +253,8 @@ class EMR:
             return step_id
 
     def add_spark_step(self, cluster_id: str, name: str, application_uri: str,
-                       jars: List[str], pyfiles: List[str], classname: Optional[str], arguments: List[str]) -> str:
+                       jars: Union[List[str], str], pyfiles: Union[List[str], str], classname: Optional[str],
+                       arguments: List[str]) -> str:
         """
         Adds a job step to the specified cluster.
 
@@ -266,8 +267,11 @@ class EMR:
         :param arguments: Arguments to pass to the application.
         :return: The ID of the newly added step.
         """
-        jars_arg = ['--jars', ','.join(jars)] if len(jars) == 0 else []
-        pyfiles_arg = ['--pyfiles', ','.join(pyfiles)] if len(pyfiles) == 0 else []
+        jars_str = (','.join(jars) if isinstance(jars, List) else jars) if jars else ''
+        pyfiles_str = (','.join(pyfiles) if isinstance(pyfiles, List) else pyfiles) if pyfiles else ''
+
+        jars_arg = ['--jars', jars_str] if jars_str != '' else []
+        pyfiles_arg = ['--pyfiles', pyfiles_str] if pyfiles_str != '' else []
         class_arg = ['--class', classname] if classname else []
         return self.add_step(
             cluster_id, name,

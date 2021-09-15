@@ -7,8 +7,10 @@ def main():
     parser = argparse.ArgumentParser(description='Submits Apache Spark step')
     parser.add_argument('-c', '--clusterid', metavar='ID', type=str, required=True, help='cluster ID')
     parser.add_argument('-s', '--stepname', metavar='STEP_NAME', type=str, required=True, help='step name')
-    parser.add_argument('-p', '--pyfiles', metavar='PATH', type=str, nargs='*', help='Additional python files')
-    parser.add_argument('-j', '--jars', metavar='PATH', type=str, nargs='*', help='Additional JAR files')
+    parser.add_argument('-p', '--pyfiles', metavar='PATH', type=str,
+                        help='Additional python files (separate with comma (","))')
+    parser.add_argument('-j', '--jars', metavar='PATH', type=str,
+                        help='Additional JAR files (separate with comma (","))')
     parser.add_argument('-v', '--verbose', help='Verbose output', action='store_true')
     parser.add_argument('-C', '--classname', metavar='FULL_NAME', type=str, help='Java class to run')
     parser.add_argument('application', metavar='URI', type=str, help='Application JAR/Python main file')
