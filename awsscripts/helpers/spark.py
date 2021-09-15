@@ -32,12 +32,12 @@ def get_spark_configurations(instance_type: str, node_count: int) -> List[Dict[s
             'Classification': 'spark',
             'Properties': {
                 'maximizeResourceAllocation': 'false',
-                'spark.sql.parquet.fs.optimized.committer.optimization-enabled': 'true'
             }
         },
         {
             "Classification": "spark-defaults",
             "Properties": {
+                'spark.sql.parquet.fs.optimized.committer.optimization-enabled': 'true',
                 'spark.network.timeout': '300s',
                 'spark.sql.broadcastTimeout': '108000',
                 'spark.sql.hive.filesourcePartitionFileCacheSize': '1073741824',

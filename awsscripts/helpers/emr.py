@@ -271,7 +271,7 @@ class EMR:
         pyfiles_str = (','.join(pyfiles) if isinstance(pyfiles, List) else pyfiles) if pyfiles else ''
 
         jars_arg = ['--jars', jars_str] if jars_str != '' else []
-        pyfiles_arg = ['--pyfiles', pyfiles_str] if pyfiles_str != '' else []
+        pyfiles_arg = ['--py-files', pyfiles_str] if pyfiles_str != '' else []
         class_arg = ['--class', classname] if classname else []
         return self.add_step(
             cluster_id, name,
