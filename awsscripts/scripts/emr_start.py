@@ -14,7 +14,7 @@ def main():
     parser.add_argument('-n', '--name', metavar='NAME', type=str, required=True, help='cluster name')
     parser.add_argument('-i', '--instance', metavar='INSTANCE', default='m5.xlarge',
                         help='master/core nodes instance type')
-    parser.add_argument('-e', '--emr', metavar='LABEL', default='emr-6.3.0', help='EMR release label')
+    parser.add_argument('-e', '--emr', metavar='LABEL', default='emr-6.4.0', help='EMR release label')
     parser.add_argument('-p', '--protect', help='Set cluster as TerminationProtected', action='store_true')
     parser.add_argument('-c', '--count', metavar='N', default=1, type=int, help='Core node instances count')
     parser.add_argument('-s', '--size', metavar='GB', default=100, type=int, help='EBS volume size in GB')
