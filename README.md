@@ -115,7 +115,7 @@ List of available scripts:
 - `emr-start` - Starts a new cluster
 - `emr-submit-spark` - Submits a Spark step (JAR or Python) using spark-submit command
 - `emr-terminate` - Terminates a cluster
-- `emr-is-idle` - Determines if a cluster is idle for at least 2 hours (and prints for how long it is idle)
+- `emr-is-idle` - Determines if a cluster is idle
 
 ### MWAA
 
