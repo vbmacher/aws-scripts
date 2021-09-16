@@ -1,7 +1,15 @@
 # AWSome Scripts
 
 Scripts for comfortable management of AWS services from command line. The idea is to store repeated configuration in
-configuration files called "accounts". Then, communication with AWS services can be made very simple.
+configuration files called "accounts". Then, communication with AWS services is much more simple.
+
+For example, the whole setup of the scripts and then start an EMR cluster (nothing else is needed):
+
+```
+aws-accounts -a my-emr -d -cemr j-D9OAIJX09SJ3
+emr-start -n "My cluster" -c 5 -i "r5.xlarge" -S
+```
+
 
 ## Supported AWS services:
 
