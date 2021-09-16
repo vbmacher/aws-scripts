@@ -252,12 +252,14 @@ class EMR:
         else:
             return step_id
 
-    def add_spark_step(self, cluster_id: str, name: str, application_uri: str,
+    def add_spark_step(self, cluster_id: str, name: str, deploy_mode: str, master: str, application_uri: str,
                        jars: Union[List[str], str], pyfiles: Union[List[str], str], classname: Optional[str],
                        arguments: List[str]) -> str:
         """
         Adds a job step to the specified cluster.
 
+        :param master: Application master
+        :param deploy_mode: Deploy mode
         :param cluster_id: The ID of the cluster.
         :param name: The name of the step.
         :param application_uri: The URI of the JAR/Python application file
@@ -275,7 +277,7 @@ class EMR:
         class_arg = ['--class', classname] if classname else []
         return self.add_step(
             cluster_id, name,
-            ['spark-submit', '--deploy-mode', 'cluster', '--master', 'yarn', *jars_arg, *pyfiles_arg, *class_arg,
+            ['spark-submit', '--deploy-mode', deploy_mode, '--master', master, *jars_arg, *pyfiles_arg, *class_arg,
              application_uri, *arguments]
         )
 

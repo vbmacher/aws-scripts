@@ -113,7 +113,7 @@ The following sections describe the usage of the scripts for supported AWS servi
 List of available scripts:
 
 - `emr-start` - Starts a new cluster
-- `emr-submit-spark` - Submits a JAR file using spark-submit command as EMR step
+- `emr-submit-spark` - Submits a Spark step (JAR or Python) using spark-submit command
 - `emr-terminate` - Terminates a cluster
 - `emr-is-idle` - Determines if a cluster is idle for at least 2 hours (and prints for how long it is idle)
 
