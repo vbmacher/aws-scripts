@@ -275,9 +275,10 @@ class EMR:
         jars_arg = ['--jars', jars_str] if jars_str != '' else []
         pyfiles_arg = ['--py-files', pyfiles_str] if pyfiles_str != '' else []
         class_arg = ['--class', classname] if classname else []
+        master_arg = ['--master', master] if master else []
         return self.add_step(
             cluster_id, name,
-            ['spark-submit', '--deploy-mode', deploy_mode, '--master', master, *jars_arg, *pyfiles_arg, *class_arg,
+            ['spark-submit', '--deploy-mode', deploy_mode, *master_arg, *jars_arg, *pyfiles_arg, *class_arg,
              application_uri, *arguments]
         )
 
