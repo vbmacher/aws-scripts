@@ -1,2 +1,6 @@
-boto3
+setuptools
 pbr
+mypy
+flake8
+twine
+boto3
