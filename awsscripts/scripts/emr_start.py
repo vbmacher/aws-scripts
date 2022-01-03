@@ -1,11 +1,14 @@
 import argparse
+import sys
+
 from awsscripts.helpers.emr import EMR
 
 from awsscripts.helpers.accounts import Accounts
-from awsscripts.helpers.spark import *
+from awsscripts.helpers.spark import get_yarn_site_configurations, get_spark_configurations, \
+    get_hdfs_site_configuration, get_livy_configuration, get_emrfs_site_configuration
 
 
-def main():
+def main() -> None:
     accounts = Accounts()
     default_account = accounts.get_default_account()
     default_msg = f' (default={default_account})' if default_account else ''
@@ -30,6 +33,10 @@ def main():
 
     args = parser.parse_args()
 
+    if not args.account:
+        print('Account not is set, and no default account exists')
+        sys.exit(1)
+
     environment = accounts[args.account]["emr"]
     configurations = \
         get_spark_configurations(args.instance, args.count) + \
@@ -42,8 +49,8 @@ def main():
         })
 
     if args.verbose:
-        print("EC2 Instance: " + args.instance)
-        print("Volume size in GB: " + args.size)
+        print(f'EC2 Instance: {args.instance}')
+        print(f'Volume size in GB: {args.size}')
         print(configurations)
 
     boot = []

@@ -6,7 +6,7 @@ import sys
 from awsscripts.helpers.accounts import Accounts
 
 
-def main():
+def main() -> None:
     accounts = Accounts()
     default_account = accounts.get_default_account()
     default_msg = f' (default={default_account})' if default_account else ''

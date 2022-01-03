@@ -120,7 +120,7 @@ def get_yarn_site_configurations(remote_log_dir: Optional[str] = None,
     ]
 
 
-def get_hdfs_site_configuration(dfs_replication: int = 2):
+def get_hdfs_site_configuration(dfs_replication: int = 2) -> List[Dict[str, Any]]:
     return [{
         'Classification': 'hdfs-site',
         'Properties': {
@@ -129,7 +129,7 @@ def get_hdfs_site_configuration(dfs_replication: int = 2):
     }]
 
 
-def get_livy_configuration(session_timeout: str = "12h"):
+def get_livy_configuration(session_timeout: str = "12h") -> List[Dict[str, Any]]:
     return [{
         "Classification": "livy-conf",
         "Properties": {
@@ -138,7 +138,7 @@ def get_livy_configuration(session_timeout: str = "12h"):
     }]
 
 
-def get_emrfs_site_configuration(fs_s3_max_connections: int = 100):
+def get_emrfs_site_configuration(fs_s3_max_connections: int = 100) -> List[Dict[str, Any]]:
     # addresses the "Timeout waiting for connection from pool" error
     return [
         {
@@ -169,7 +169,7 @@ def get_spark_steps(steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     :return: List of Spark steps usable when creating EMR cluster (properly formatted)
     """
 
-    def step_conf(step):
+    def step_conf(step: Dict[str, Any]) -> List[str]:
         result = ['spark-submit', '--master', 'yarn', '--deploy-mode', 'cluster']
         if 'conf' in step:
             for setting in step["conf"]:

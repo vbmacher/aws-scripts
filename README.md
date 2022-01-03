@@ -1,7 +1,6 @@
 # AWSome Scripts
 
-Scripts for comfortable management of AWS services from command line. The idea is to store repeated configuration in
-configuration files called "accounts". Then, communication with AWS services is much more simple.
+Scripts bringing up opinionated convention and simplification of **manual** work with AWS services from command line.
 
 For example, the whole setup of the scripts and then start an EMR cluster (nothing else is needed):
 
@@ -10,8 +9,42 @@ aws-accounts -a my-emr -d -cemr j-D9OAIJX09SJ3
 emr-start -n "My cluster" -c 5 -i "r5.xlarge" -S
 ```
 
+## Project goals
+
+### Functional goals
+
+- the scripts should allow reusing various configurations of AWS services
+  - by having multiple profiles/accounts stored in files
+- the scripts should simplify using AWS services from command line
+  - starting/stopping EMR clusters / EC2 instances
+  - logging in/out from codeartifact, 
+  - sending a message to SQS queue
+  - bypass Airflow commands though MWAA HTTP calls
+  - etc.
+- the scripts should allow to run a pipeline file written using a DSL language.
+  - the pipeline should be able to use "templates" stored elsewhere
+  - the DSL should allow to use variables
+  - the DSL should allow to use loops, date range generation, file copying
+  - the DSL should allow to replace values from external configuration file (e.g. typesafe HOCON) using
+    some templating language (JINJA??) 
+- the scripts should track progress of work
+- the scripts should allow to interrupt/resume work
+  - transactional work if possible
+
+### Non-functional goals
+
+- it should be possible to use the scripts as Python library
+- it should be possible to use command line version of the scripts
+- the scripts should be published to public PyPy.
+- the scripts should be versioned semantically, best by integrating with git tags (pbr)
+
+### Non-goals
+
+- AWSome scripts is not "resisent" application. It means no scheduling capability or active monitoring will be supported
 
 ## Supported AWS services:
+
+Current focus is on the following services:
 
 - EMR
 - MWAA
@@ -41,26 +74,31 @@ Before using, please set up AWS CLI configuration:
 
 ## Building & Local testing
 
-List of prerequisites:
-
-- https://python-poetry.org/
-- https://github.com/mtkennerly/poetry-dynamic-versioning
-
-Building:
-```
-poetry build
-```
-
-Local installation in a virtual environment:
+Prerequisites:
 
 ```
-poetry install
+pip install --upgrade pip
+pip install --upgrade setuptools
+pip install pbr
+pip install mypy
+pip install flake8
+pip install twine
 ```
 
-Publishing to PyPi:
+Build:
 
 ```
-poetry publish
+# static types check
+mypy aws-scripts/awsscripts/
+
+# style check
+flake8 --max-line-length 120 aws-scripts/awsscripts/
+
+# build AWSome Scripts
+cd aws-scripts/; python setup.py sdist bdist_wheel
+
+# distribution check
+twine check aws-scripts/dist/*
 ```
 
 ## Usage
@@ -137,6 +175,15 @@ List of available scripts:
 
 - `codeartifact` - Logs in/logs out to CodeArtifact: optionally configures `pip` and `twine` tools
 
+## For Developers
+
+### Conventions
+
+Script file names should be composed of words separated with plain dashes, in format: `[service]-[function]`,
+e.g. `emr-start`. 
+
+Source code file names should be composed of words separated with underscores, in format: `[service]_[function].py`,
+e.g. `emr_start.py`. 
 
 
 

@@ -3,7 +3,7 @@ import argparse
 from awsscripts.helpers.emr import EMR
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description='Submits Apache Spark step')
     parser.add_argument('-c', '--clusterid', metavar='ID', type=str, required=True, help='cluster ID')
     parser.add_argument('-s', '--stepname', metavar='STEP_NAME', type=str, required=True, help='step name')
