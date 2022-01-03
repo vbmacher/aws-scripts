@@ -190,7 +190,7 @@ class EMR:
             self._vprint("Couldn't create cluster.")
             raise
         else:
-            return cluster_id
+            return str(cluster_id)
 
     def describe_cluster(self, cluster_id: str) -> Dict[str, Any]:
         """
@@ -207,9 +207,9 @@ class EMR:
             self._vprint(f"Couldn't get data for cluster {cluster_id}")
             raise
         else:
-            return cluster
+            return dict(cluster)
 
-    def terminate_cluster(self, cluster_id: str):
+    def terminate_cluster(self, cluster_id: str) -> None:
         """
         Terminates a cluster. This terminates all instances in the cluster and cannot
         be undone. Any data not saved elsewhere, such as in an Amazon S3 bucket, is lost.
@@ -244,7 +244,7 @@ class EMR:
                         'Args': args
                     }
                 }])
-            step_id = response['StepIds'][0]
+            step_id = str(response['StepIds'][0])
             self._vprint(f"Started step {step_id}")
         except ClientError:
             self._vprint(f"Couldn't start step '{name}' with URI {args}")
@@ -292,7 +292,7 @@ class EMR:
         """
         try:
             response = self.emr_client.list_steps(ClusterId=cluster_id)
-            steps = response['Steps']
+            steps = dict(response['Steps'])
             self._vprint(f"Got {len(steps)} steps for cluster {cluster_id}")
         except ClientError:
             self._vprint(f"Couldn't get steps for cluster {cluster_id}")
@@ -311,7 +311,7 @@ class EMR:
         """
         try:
             response = self.emr_client.describe_step(ClusterId=cluster_id, StepId=step_id)
-            step = response['Step']
+            step: Dict[str, Any] = response['Step']
             self._vprint(f"Got data for step {step_id}")
         except ClientError:
             self._vprint(f"Couldn't get data for step {step_id}")
@@ -319,6 +319,6 @@ class EMR:
         else:
             return step
 
-    def _vprint(self, msg: str):
+    def _vprint(self, msg: str) -> None:
         if self.verbose:
             print(msg)

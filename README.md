@@ -89,7 +89,7 @@ Build:
 
 ```
 # static types check
-mypy --ignore-missing-imports aws-scripts/awsscripts/
+mypy aws-scripts/awsscripts/
 
 # style check
 flake8 --max-line-length 120 aws-scripts/awsscripts/

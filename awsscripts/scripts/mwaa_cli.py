@@ -8,7 +8,7 @@ import sys
 import base64
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description='MWAA CLI Proxy')
     parser.add_argument('-e', '--environment', metavar='NAME', type=str, required=True, help='MWAA environment')
     parser.add_argument('command', metavar='COMMAND/ARG', type=str, nargs='+', help='MWAA CLI command')

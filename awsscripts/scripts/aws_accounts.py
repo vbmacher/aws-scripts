@@ -3,7 +3,7 @@ from awsscripts.helpers.accounts import Accounts, templates
 from awsscripts.helpers.templates import Template
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description='Manage AWS accounts')
     parser.add_argument('-a', '--account', metavar='ACCOUNT', type=str, required=True, help='AWS account name')
     parser.add_argument('-d', '--default', help='Make the account default', action='store_true')
