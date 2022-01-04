@@ -1,6 +1,26 @@
 from typing import Dict, Any
 
 from awsscripts.helpers.emr import EMR
+from awsscripts.helpers.ec2 import ec2_instances
+
+
+def _generate_instance_fleets():
+    result = {}
+    for instance, values in ec2_instances.items():
+        name = 'mem/cpu=' + str(round(values['memory'] / values['cpu'], 2))
+        weight = int(max(values['cpu'] / 4, values['memory'] / 32))
+        if weight > 0:
+            value = {
+                'InstanceType': instance,
+                'WeightedCapacity': weight
+            }
+            if values['storage'] > 0:
+                result.setdefault('ssd;' + name, []).append(value)
+            else:
+                result.setdefault('ebs;' + name, []).append(value)
+            result.setdefault(name, []).append(value)
+    return result
+
 
 templates = {
     'emr': {
@@ -29,7 +49,8 @@ templates = {
         'log_uri': 'TODO',
         'bootstrap_scripts': {
             # TODO
-        }
+        },
+        'instance_fleets': _generate_instance_fleets()
     },
     'codeartifact': {
         'repository': 'TODO',
