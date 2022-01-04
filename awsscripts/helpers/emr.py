@@ -242,7 +242,8 @@ class EMR:
         """
         try:
             response = self.emr_client.describe_cluster(ClusterId=cluster_id)
-            cluster = response['Cluster']
+            bootstrap_actions = self.emr_client.list_bootstrap_actions(ClusterId=cluster_id)
+            cluster = {**response['Cluster'], **bootstrap_actions['BootstrapActions']}
             self._vprint(f'Got data for cluster "{cluster["Name"]}"')
         except ClientError:
             self._vprint(f"Couldn't get data for cluster {cluster_id}")

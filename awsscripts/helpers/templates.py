@@ -2,6 +2,7 @@ from typing import Dict, Any
 
 from awsscripts.helpers.emr import EMR
 from awsscripts.helpers.ec2 import ec2_instances
+from awsscripts.helpers.spark import get_hdfs_site_configuration, get_livy_configuration, get_emrfs_site_configuration
 
 
 def _generate_instance_fleets():
@@ -47,10 +48,9 @@ templates = {
             }
         ],
         'log_uri': 'TODO',
-        'bootstrap_scripts': {
-            # TODO
-        },
-        'instance_fleets': _generate_instance_fleets()
+        'bootstrap_scripts': [],
+        'instance_fleets': _generate_instance_fleets(),
+        'configurations': get_hdfs_site_configuration() + get_livy_configuration() + get_emrfs_site_configuration()
     },
     'codeartifact': {
         'repository': 'TODO',
@@ -67,6 +67,13 @@ class Template:
         emr = EMR(verbose=True)
         cluster = emr.describe_cluster(cluster_id)
         ec2 = cluster['Ec2InstanceAttributes']
+        bootstrap_scripts = []
+        for b in cluster['BootstrapActions']:
+            bootstrap_scripts += [{
+                'name': b['Name'],
+                'path': b['ScriptPath'],
+                'args': b['Args']
+            }]
 
         subnets = ec2['RequestedEc2SubnetIds'] if ec2['RequestedEc2SubnetIds'] else [ec2['Ec2SubnetId']]
         security_groups = {
@@ -87,9 +94,8 @@ class Template:
             'subnets': subnets,
             'tags': cluster['Tags'],
             'log_uri': cluster['LogUri'],
-            'bootstrap_scripts': {
-                # TODO
-            }
+            'bootstrap_scripts': bootstrap_scripts,
+            'configurations': cluster['Configurations']
         }
         if 'Ec2KeyName' in ec2:
             result['keyname'] = ec2['Ec2KeyName']

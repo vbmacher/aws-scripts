@@ -1,11 +1,18 @@
 import argparse
 import sys
+from typing import Dict, Any, Optional, List
 
 from awsscripts.helpers.emr import EMR
 
 from awsscripts.helpers.accounts import Accounts
 from awsscripts.helpers.spark import get_yarn_site_configurations, get_spark_configurations, \
     get_hdfs_site_configuration, get_livy_configuration, get_emrfs_site_configuration
+
+
+def has_configuration(environment: Dict[str, Any], name: str) -> bool:
+    if 'configurations' in environment:
+        return len(list(filter(lambda c: c['Classification'] == name, environment['configurations']))) == 0
+    return False
 
 
 def main() -> None:
@@ -48,7 +55,6 @@ def main() -> None:
         print('Account not is set, and no default account exists')
         sys.exit(1)
 
-    # TODO: find all of these values in the account, and check only if they are not present
     if args.fleet and (args.master_instance or args.core_instance):
         print('Instance types are mutually exclusive with instance fleet')
         sys.exit(1)
@@ -66,17 +72,20 @@ def main() -> None:
         sys.exit(1)
 
     environment = accounts[args.account]["emr"]
-    configurations = \
-        get_hdfs_site_configuration() + \
-        get_livy_configuration() + \
-        get_emrfs_site_configuration()
+
+    # load configurations
+    configurations = environment['configurations'] if 'configurations' in environment else []
+    configurations += [] if has_configuration(environment, 'hdfs-site') else get_hdfs_site_configuration()
+    configurations += [] if has_configuration(environment, 'livy-conf') else get_livy_configuration()
+    configurations += [] if has_configuration(environment, 'emrfs-site') else get_emrfs_site_configuration()
 
     if args.core_instance:
         configurations += get_yarn_site_configurations(capacity_scheduler={
             "instance_type": args.core_instance,
             "node_count": args.count
         })
-        configurations += get_spark_configurations(args.core_instance, args.count)
+        if not has_configuration(environment, 'spark-defaults'):
+            configurations += get_spark_configurations(args.core_instance, args.count)
 
     if args.verbose:
         if args.master_instance:
@@ -95,6 +104,8 @@ def main() -> None:
             'path': b,
             'args': []
         } for b in args.boot]
+    elif 'bootstrap_scripts' in environment:
+        boot = environment['bootstrap_scripts']
 
     emr = EMR(args.verbose)
     instance_fleet_configs = environment['instance_fleets'] if 'instance_fleets' in environment else None
