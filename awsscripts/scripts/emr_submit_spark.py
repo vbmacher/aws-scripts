@@ -1,6 +1,6 @@
 import argparse
 
-from awsscripts.helpers.emr import EMR
+from emr.emr import EMR
 
 
 def main() -> None:

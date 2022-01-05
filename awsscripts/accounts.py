@@ -5,7 +5,13 @@ import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
-from awsscripts.helpers.templates import templates
+from templates.code_artifact import CodeArtifactTemplate
+from templates.emr_template import EmrTemplate
+
+templates = {
+    'emr': EmrTemplate(),
+    'codeartifact': CodeArtifactTemplate()
+}
 
 
 class Accounts:
@@ -64,7 +70,7 @@ class Accounts:
         self._create_account(account)
         content = self._load_content(account)
         if template_name not in content:
-            content[template_name] = templates[template_name]
+            content[template_name] = templates[template_name].generate()
             self._write_content(account, content)
             print(f'"{template_name}" template has been added to file {self._get_account_path(account)}.\n'
                   'Please fill up missing values.')

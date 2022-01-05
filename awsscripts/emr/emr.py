@@ -43,6 +43,8 @@ class EMR:
         instances and adds steps to be run on the cluster. Steps added to the cluster
         are run as soon as the cluster is ready.
 
+        :param ebs_core_volume_gb: EBS core volume size (in GB)
+        :param ebs_master_volume_gb: EBS master volume size (in GB)
         :param instance_fleet_configs: instance fleet configurations.
         :param bootstrap_scripts: Bootstrap scripts array. Structure:
                     [{

@@ -1,6 +1,7 @@
 import argparse
-from awsscripts.helpers.accounts import Accounts, templates
-from awsscripts.helpers.templates import Template
+
+from accounts import Accounts, templates
+from templates.emr_template import EmrTemplate
 
 
 def main() -> None:
@@ -30,8 +31,8 @@ def main() -> None:
         accounts.remove_template(args.account, args.remove)
 
     if args.configure_emr:
-        emr_template = Template.configure_emr_from_cluster(args.configure_emr)
-        accounts.replace_template(args.account, 'emr', emr_template)
+        emr_template = EmrTemplate.from_cluster(args.configure_emr)
+        accounts.replace_template(args.account, 'emr', emr_template.generate())
 
 
 if __name__ == "__main__":

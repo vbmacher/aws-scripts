@@ -1,18 +1,10 @@
 import argparse
 import sys
-from typing import Dict, Any, Optional, List
 
-from awsscripts.helpers.emr import EMR
-
-from awsscripts.helpers.accounts import Accounts
-from awsscripts.helpers.spark import get_yarn_site_configurations, get_spark_configurations, \
-    get_hdfs_site_configuration, get_livy_configuration, get_emrfs_site_configuration
-
-
-def has_configuration(environment: Dict[str, Any], name: str) -> bool:
-    if 'configurations' in environment:
-        return len(list(filter(lambda c: c['Classification'] == name, environment['configurations']))) == 0
-    return False
+from accounts import Accounts
+from emr.configurations import EmrConfigurations
+from emr.emr import EMR
+from templates.emr_template import EmrTemplate
 
 
 def main() -> None:
@@ -21,7 +13,7 @@ def main() -> None:
     default_msg = f' (default={default_account})' if default_account else ''
 
     parser = argparse.ArgumentParser(description='Starts EMR cluster')
-    parser.add_argument('-n', '--name', metavar='NAME', type=str, required=True, help='cluster name')
+    parser.add_argument('-n', '--name', metavar='NAME', type=str, help='cluster name')
     parser.add_argument('-mi', '--master_instance', metavar='INSTANCE', default='m5.xlarge',
                         help='master node instance type')
     parser.add_argument('-ci', '--core_instance', metavar='INSTANCE', default='m5.xlarge',
@@ -40,8 +32,8 @@ def main() -> None:
     parser.add_argument('-cs', '--core_size', metavar='GB', default=100, type=int,
                         help='EBS volume size in GB (core nodes)')
     parser.add_argument('-S', '--spot', help='Use Spot core nodes', action='store_true')
-    parser.add_argument('-b', '--boot', metavar='PATH', type=str, nargs='*',
-                        help='Bootstrap scripts (path to S3).')
+    parser.add_argument('-b', '--boot', metavar='NAME', type=str, nargs='*',
+                        help='Bootstrap scripts (names as defined in the account).')
     parser.add_argument('-A', '--applications', metavar='APP', nargs='*',
                         default=['Spark', 'JupyterHub', 'JupyterEnterpriseGateway', 'Hadoop', 'Livy'],
                         help='EMR applications (default: Spark,JupyterHub,JupyterEnterpriseGateway,Hadoop,Livy)')
@@ -72,90 +64,68 @@ def main() -> None:
         sys.exit(1)
 
     environment = accounts[args.account]["emr"]
+    template = EmrTemplate.from_content(environment)
 
-    # load configurations
-    configurations = environment['configurations'] if 'configurations' in environment else []
-    configurations += [] if has_configuration(environment, 'hdfs-site') else get_hdfs_site_configuration()
-    configurations += [] if has_configuration(environment, 'livy-conf') else get_livy_configuration()
-    configurations += [] if has_configuration(environment, 'emrfs-site') else get_emrfs_site_configuration()
+    configurations = EmrConfigurations()
 
     if args.core_instance:
-        configurations += get_yarn_site_configurations(capacity_scheduler={
+        configurations.add_yarn_site(capacity_scheduler={
             "instance_type": args.core_instance,
             "node_count": args.count
         })
-        if not has_configuration(environment, 'spark-defaults'):
-            configurations += get_spark_configurations(args.core_instance, args.count)
+        configurations.add_spark(args.core_instance, args.count)
+    template.put_configurations(configurations.configurations)
+
+    if args.fleet:
+        template.put_instance_fleet(args.fleet, args.master_capacity, args.core_capacity, args.spot)
+    if args.master_instance:
+        template.put_instance_groups(args.master_instance, args.core_instance, args.count, args.spot)
+    if args.emr:
+        template.set_emr_label(args.emr)
+    if args.name:
+        template.set_cluster_name(args.name)
+    if args.applications and not ('applications' in environment):
+        template.set_applications(args.applications)
+    if args.protect and not ('TerminationProtected' in environment):
+        template.set_protect(args.protect)
+    if args.master_size:
+        template.set_master_size_gb(args.master_size)
+    if args.core_size:
+        template.set_core_size_gb(args.core_size)
 
     if args.verbose:
-        if args.master_instance:
-            print(f'EC2 Master node instance: {args.master_instance}')
-        if args.core_instance:
-            print(f'EC2 Core node instance: {args.core_instance}')
-        if args.fleet:
-            print(f'Instance fleet: {args.fleet}')
-        print(f'Volume size in GB: {args.size}')
-        print(configurations)
+        generated = template.generate()
+        generated.pop('instance_fleets')
+        print(generated)
 
     boot = []
     if args.boot:
-        boot = [{
-            'name': 'Run script: ' + b.strip(),
-            'path': b,
-            'args': []
-        } for b in args.boot]
-    elif 'bootstrap_scripts' in environment:
-        boot = environment['bootstrap_scripts']
+        boot = [template.get_bootstrap_script(b) for b in args.boot]
 
     emr = EMR(args.verbose)
-    instance_fleet_configs = environment['instance_fleets'] if 'instance_fleets' in environment else None
     cluster_id = emr.start_cluster(
-        name=args.name,
-        log_uri=environment['log_uri'],
+        name=template.get_cluster_name(),
+        log_uri=template.get_log_uri(),
         keep_alive=True,
-        protect=args.protect,
-        applications=args.applications,
-        job_flow_role=environment['job_flow_role'],
-        service_role=environment['service_role'],
-        emr_label=args.emr,
-        instance_fleet={
-            'master': {
-                'instance_fleet_name': args.fleet,
-                'TargetOnDemandCapacity': args.master_capacity,
-                'TargetSpotCapacity': 0,
-                'on_demand_allocation_strategy': 'LOWEST_PRICE'
-            },
-            'core': {
-                'instance_fleet_name': args.fleet,
-                'TargetOnDemandCapacity': args.core_capacity if not args.spot else 0,
-                'TargetSpotCapacity': args.core_capacity if args.spot else 0,
-                'on_demand_allocation_strategy': 'LOWEST_PRICE'
-            }
-        } if args.fleet else None,
-        instance_fleet_configs=instance_fleet_configs,
-        instance_groups={
-            'master': {
-                'Market': 'ON_DEMAND',
-                'InstanceType': args.master_instance,
-                'InstanceCount': 1
-            },
-            'core': {
-                'Market': 'ON_DEMAND' if not args.spot else 'SPOT',
-                'InstanceType': args.core_instance,
-                'InstanceCount': args.count
-            }
-        } if args.master_instance else None,
-        ebs_master_volume_gb=args.master_size if args.master_size else None,
-        ebs_core_volume_gb=args.core_size if args.core_size else None,
+        protect=template.get_protect(),
+        applications=template.applications,
+        job_flow_role=template.get_job_flow_role(),
+        service_role=template.get_service_role(),
+        emr_label=template.get_emr_label(),
+        instance_fleet=template.get_instance_fleet(),
+        instance_fleet_configs=template.get_instance_fleets(),
+        instance_groups=template.get_instance_groups(),
+        ebs_master_volume_gb=template.get_master_size_gb(),
+        ebs_core_volume_gb=template.get_core_size_gb(),
         steps=[{
             'Name': 'Enable debugging',
             'Args': ["state-pusher-script"]
         }],
-        tags=environment['tags'],
-        security_groups=environment['security_groups'],
-        subnets=environment['subnets'],
-        configurations=configurations,
-        keyname=environment['keyname'] if 'keyname' in environment else None,
+        tags=template.get_tags(),
+        security_groups=template.get_security_groups(),
+        subnets=template.get_subnets(),
+        configurations=template.get_configurations(),
+        keyname=template.get_keyname(),
         bootstrap_scripts=boot
     )
 

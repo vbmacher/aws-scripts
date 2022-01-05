@@ -3,7 +3,7 @@ import os
 from os.path import splitext, basename
 import sys
 
-from awsscripts.helpers.accounts import Accounts
+from accounts import Accounts
 
 
 def main() -> None:
