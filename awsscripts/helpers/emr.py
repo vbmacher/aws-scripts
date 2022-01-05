@@ -25,33 +25,62 @@ class EMR:
                       job_flow_role: str,
                       service_role: str,
                       emr_label: str,
-                      master_instance: str,
-                      node_instance: str,
-                      node_count: int,
+                      instance_fleet: Optional[Dict[str, Any]],
+                      instance_groups: Optional[Dict[str, Any]],
+                      instance_fleet_configs: Optional[List[Dict[str, Any]]],
+                      ebs_master_volume_gb: Optional[int],
+                      ebs_core_volume_gb: Optional[int],
                       steps: List[Dict[str, Any]],
                       tags: List[str],
                       security_groups: Dict[str, Any],
                       subnets: Dict[str, Any],
                       configurations: List[Dict[str, Any]],
                       keyname: Optional[str],
-                      volume_size_gb: int,
-                      bootstrap_scripts: List[Dict[str, Any]],
-                      spot: Optional[bool]) -> str:
+                      bootstrap_scripts: List[Dict[str, Any]]) -> str:
 
         """
         Runs a job flow with the specified steps. A job flow creates a cluster of
         instances and adds steps to be run on the cluster. Steps added to the cluster
         are run as soon as the cluster is ready.
 
-        :param spot: Use Spot core nodes
+        :param instance_fleet_configs: instance fleet configurations.
         :param bootstrap_scripts: Bootstrap scripts array. Structure:
                     [{
                        'name': 'string',
                        'path': 'string',
                        'args': ['string']
                     }]
+        :param instance_fleet Instance fleet definition. It is exclusive with instance_groups.
+                    {
+                      'master': {
+                        'instance_fleet_name': 'string',
+                        'TargetOnDemandCapacity': integer,
+                        'TargetSpotCapacity': integer,
+                        'on_demand_allocation_strategy': 'string'
+                      },
+                      'core': {
+                        'instance_fleet_name': 'string',
+                        'TargetOnDemandCapacity': integer,
+                        'TargetSpotCapacity': integer,
+                        'on_demand_allocation_strategy': 'string'
+                      }
+                    }
+        :param instance_groups Instance group definition. It is exlcusive with instance_fleet.
+                    {
+                      'master': {
+                        'BidPrice': float,
+                        'Market': 'string',
+                        'InstanceType': 'string',
+                        'InstanceCount': integer
+                      },
+                      'core': {
+                        'BidPrice': float,
+                        'Market': 'string',
+                        'InstanceType': 'string',
+                        'InstanceCount': integer
+                      }
+                    }
         :param keyname: SSH key name to use (optional)
-        :param volume_size_gb: volume size in GB (x2)
         :param configurations: configurations of this EMR cluster
         :param subnets: list of available subnets
         :param security_groups: security groups
@@ -67,9 +96,6 @@ class EMR:
         :param job_flow_role: The IAM role assumed by the cluster.
         :param service_role: The IAM role assumed by the service.
         :param emr_label: EMR release label. E.g. 'emr-5.30.1'
-        :param master_instance: Instance type of master node (driver). E.g. 'm5.xlarge'
-        :param node_instance: Instance type of "slave" node (core nodes). E.g. 'm5.xlarge'
-        :param node_count: Count of "slave" nodes. E.g. 3
         :param steps: The job flow steps to add to the cluster. These are run in order
                       when the cluster is ready. Structure:
 
@@ -84,65 +110,6 @@ class EMR:
         instances = {
             'KeepJobFlowAliveWhenNoSteps': keep_alive,
             'TerminationProtected': protect,
-            'InstanceFleets': [
-                {
-                    "InstanceFleetType": "MASTER",
-                    "TargetOnDemandCapacity": 1,
-                    "TargetSpotCapacity": 0,
-                    "LaunchSpecifications": {
-                        "OnDemandSpecification": {
-                            "AllocationStrategy": "LOWEST_PRICE"
-                        }
-                    },
-                    "InstanceTypeConfigs": [
-                        {
-                            "WeightedCapacity": 1,
-                            "EbsConfiguration": {
-                                "EbsBlockDeviceConfigs": [
-                                    {
-                                        "VolumeSpecification": {
-                                            "SizeInGB": volume_size_gb,
-                                            "VolumeType": "gp2"
-                                        },
-                                        "VolumesPerInstance": 1
-                                    }
-                                ]
-                            },
-                            "BidPriceAsPercentageOfOnDemandPrice": 100,
-                            "InstanceType": master_instance
-                        }
-                    ],
-                    "Name": "Master"
-                },
-                {
-                    "InstanceFleetType": "CORE",
-                    "TargetOnDemandCapacity": 1 * node_count if not spot else 0,
-                    "TargetSpotCapacity": 1 * node_count if spot else 0,
-                    "LaunchSpecifications": {
-                        "OnDemandSpecification": {
-                            "AllocationStrategy": "LOWEST_PRICE"
-                        }
-                    },
-                    "InstanceTypeConfigs": [
-                        {
-                            "WeightedCapacity": 1,
-                            "EbsConfiguration": {
-                                "EbsBlockDeviceConfigs": [
-                                    {
-                                        "VolumeSpecification": {
-                                            "SizeInGB": volume_size_gb,
-                                            "VolumeType": "gp2"
-                                        },
-                                        "VolumesPerInstance": 1
-                                    }
-                                ], "EbsOptimized": True
-                            },
-                            "BidPriceAsPercentageOfOnDemandPrice": 100,
-                            "InstanceType": node_instance
-                        }
-                    ], "Name": "Core"
-                }
-            ],
             'Ec2SubnetIds': subnets,
             'EmrManagedMasterSecurityGroup': security_groups["EmrManagedMasterSecurityGroup"],
             'EmrManagedSlaveSecurityGroup': security_groups["EmrManagedSlaveSecurityGroup"]
@@ -155,8 +122,26 @@ class EMR:
             instances['ServiceAccessSecurityGroup'] = security_groups['ServiceAccessSecurityGroup']
         if keyname:
             instances['Ec2KeyName'] = keyname
-        try:
 
+        if instance_fleet and instance_groups:
+            raise RuntimeError("instance_fleet and instance_groups cannot be defined at the same time")
+        if instance_fleet and not instance_fleet_configs:
+            raise RuntimeError("both instance_fleet and instance_fleet_configs must be defined")
+
+        if instance_fleet:
+            master_fleet = EMR._to_instance_fleet_boto('MASTER', instance_fleet['master'], ebs_master_volume_gb,
+                                                       instance_fleet_configs)
+            core_fleet = EMR._to_instance_fleet_boto('CORE', instance_fleet['core'], ebs_core_volume_gb,
+                                                     instance_fleet_configs)
+            instances['InstanceFleets'] = [master_fleet, core_fleet]
+        elif instance_groups:
+            master_group = EMR._to_instance_group_boto('MASTER', instance_groups['master'], ebs_master_volume_gb)
+            core_group = EMR._to_instance_group_boto('CORE', instance_groups['core'], ebs_core_volume_gb)
+            instances['InstanceGroups'] = [
+                master_group, core_group
+            ]
+
+        try:
             response = self.emr_client.run_job_flow(
                 Name=name,
                 LogUri=log_uri,
@@ -192,6 +177,62 @@ class EMR:
         else:
             return str(cluster_id)
 
+    @staticmethod
+    def _to_instance_fleet_boto(fleet_type: str, fleet: Dict[str, Any], ebs_volume_gb: Optional[int],
+                                instance_fleet_configs) -> Dict[str, Any]:
+        fleet_config = instance_fleet_configs[fleet['instance_fleet_name']]
+        if ebs_volume_gb:
+            fleet_config['EbsConfiguration'] = {
+                "EbsBlockDeviceConfigs": [
+                    {
+                        "VolumeSpecification": {
+                            "SizeInGB": ebs_volume_gb,
+                            "VolumeType": "gp2"
+                        },
+                        "VolumesPerInstance": 1
+                    }
+                ]
+            }
+        fleet_boto = {
+            'InstanceFleetType': fleet_type,
+            'TargetOnDemandCapacity': fleet['TargetOnDemandCapacity'],
+            'TargetSpotCapacity': fleet['TargetSpotCapacity'],
+            'InstanceTypeConfigs': fleet_config
+        }
+        if 'on_demand_allocation_strategy' in fleet:
+            fleet_boto['LaunchSpecifications'] = {
+                'OnDemandSpecification': {
+                    'AllocationStrategy': fleet['on_demand_allocation_strategy']
+                }
+            }
+        return fleet_boto
+
+    @staticmethod
+    def _to_instance_group_boto(role: str, instance_group: Dict[str, Any], ebs_volume_gb: Optional[int]) \
+            -> Dict[str, Any]:
+        group_boto = {
+            'Name': role,
+            'Market': instance_group['Market'],
+            'InstanceRole': role,
+            'InstanceType': instance_group['InstanceType'],
+            'InstanceCount': instance_group['InstanceCount']
+        }
+        if 'BidPrice' in instance_group:
+            group_boto['BidPrice'] = instance_group['BidPrice']
+        if ebs_volume_gb:
+            group_boto['EbsConfiguration'] = {
+                "EbsBlockDeviceConfigs": [
+                    {
+                        "VolumeSpecification": {
+                            "SizeInGB": ebs_volume_gb,
+                            "VolumeType": "gp2"
+                        },
+                        "VolumesPerInstance": 1
+                    }
+                ]
+            }
+        return group_boto
+
     def describe_cluster(self, cluster_id: str) -> Dict[str, Any]:
         """
         Gets detailed information about a cluster.
@@ -201,7 +242,8 @@ class EMR:
         """
         try:
             response = self.emr_client.describe_cluster(ClusterId=cluster_id)
-            cluster = response['Cluster']
+            bootstrap_actions = self.emr_client.list_bootstrap_actions(ClusterId=cluster_id)
+            cluster = {**response['Cluster'], **bootstrap_actions['BootstrapActions']}
             self._vprint(f'Got data for cluster "{cluster["Name"]}"')
         except ClientError:
             self._vprint(f"Couldn't get data for cluster {cluster_id}")
