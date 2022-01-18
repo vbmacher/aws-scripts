@@ -1,4 +1,3 @@
-import argparse
 import sys
 
 from accounts import Accounts
@@ -7,12 +6,7 @@ from emr.emr import EMR
 from templates.emr_template import EmrTemplate
 
 
-def main() -> None:
-    accounts = Accounts()
-    default_account = accounts.get_default_account()
-    default_msg = f' (default={default_account})' if default_account else ''
-
-    parser = argparse.ArgumentParser(description='Starts EMR cluster')
+def configure_parser(parser):
     parser.add_argument('-n', '--name', metavar='NAME', type=str, help='cluster name')
     parser.add_argument('-mi', '--master_instance', metavar='INSTANCE', default='m5.xlarge',
                         help='master node instance type')
@@ -37,11 +31,10 @@ def main() -> None:
     parser.add_argument('-A', '--applications', metavar='APP', nargs='*',
                         default=['Spark', 'JupyterHub', 'JupyterEnterpriseGateway', 'Hadoop', 'Livy'],
                         help='EMR applications (default: Spark,JupyterHub,JupyterEnterpriseGateway,Hadoop,Livy)')
-    parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
-                        help=f"AWS account{default_msg}. One of: {accounts.list()}")
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
 
-    args = parser.parse_args()
+
+def execute(args) -> None:
+    accounts = Accounts()
 
     if not args.account:
         print('Account not is set, and no default account exists')
@@ -63,9 +56,7 @@ def main() -> None:
         print('Core node target on_demand capacity must be defined')
         sys.exit(1)
 
-    environment = accounts[args.account]["emr"]
-    template = EmrTemplate.from_content(environment)
-
+    template = EmrTemplate.from_content(accounts[args.account]["emr"])
     configurations = EmrConfigurations()
 
     if args.core_instance:
@@ -84,9 +75,9 @@ def main() -> None:
         template.set_emr_label(args.emr)
     if args.name:
         template.set_cluster_name(args.name)
-    if args.applications and not ('applications' in environment):
+    if args.applications and not template.contains('applications'):
         template.set_applications(args.applications)
-    if args.protect and not ('TerminationProtected' in environment):
+    if args.protect and not template.contains('TerminationProtected'):
         template.set_protect(args.protect)
     if args.master_size:
         template.set_master_size_gb(args.master_size)
@@ -130,7 +121,3 @@ def main() -> None:
     )
 
     print(cluster_id)
-
-
-if __name__ == "__main__":
-    main()

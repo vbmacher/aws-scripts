@@ -2,11 +2,14 @@ from typing import Any, Dict, List, Optional
 
 
 class Template:
+    """
+    AWS service template
+    """
 
     def __init__(self):
         self.content = {}
 
-    def content(self):
+    def content(self) -> Dict[str, Any]:
         return self.content
 
     def contains(self, key: str) -> bool:
@@ -52,8 +55,12 @@ class Template:
         if self._has_in_list_dict(list_name, dict_key, key):
             self[list_name] = list(filter(lambda c: c[dict_key] != key, self[list_name]))
 
-    def generate(self):
-        pass
+    def generate(self) -> Dict[str, Any]:
+        """
+        Generate AWS service template (a dictionary)
+        :return: template content
+        """
+        return self.content
 
     def __getitem__(self, key: str) -> Any:
         return self.content[key]

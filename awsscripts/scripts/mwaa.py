@@ -1,20 +1,19 @@
 from __future__ import print_function
 
-import argparse
-import boto3
-import requests
+import base64
 import json
 import sys
-import base64
+
+import boto3
+import requests
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description='MWAA CLI Proxy')
+def configure_parser(parser):
     parser.add_argument('-e', '--environment', metavar='NAME', type=str, required=True, help='MWAA environment')
     parser.add_argument('command', metavar='COMMAND/ARG', type=str, nargs='+', help='MWAA CLI command')
 
-    args = parser.parse_args()
 
+def execute(args) -> None:
     client = boto3.client('mwaa')
     token_with_server = client.create_cli_token(Name=args.environment)
     token = token_with_server['CliToken']
@@ -27,7 +26,3 @@ def main() -> None:
 
     print(base64.b64decode(r['stdout']))
     print(base64.b64decode(r['stderr']), file=sys.stderr)
-
-
-if __name__ == "__main__":
-    main()

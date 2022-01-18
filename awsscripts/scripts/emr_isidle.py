@@ -1,15 +1,15 @@
-import argparse
-import boto3
 from datetime import datetime, timedelta, timezone
 
+import boto3
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description='Determines if an EMR cluster is idle')
+
+def configure_parser(parser) -> None:
     parser.add_argument('-c', '--cluster', metavar='CLUSTER_ID', type=str, required=True, help='cluster ID')
     parser.add_argument('-i', '--idleness', metavar='HOURS', type=int, default=2,
                         help='Idleness time in hours (default=2)')
 
-    args = parser.parse_args()
+
+def execute(args) -> None:
     min_age = timedelta(hours=args.idleness)
     period_seconds = 300  # 5-minute period, available for 63 days
 
@@ -56,7 +56,3 @@ def main() -> None:
     if is_idle:
         print("Cluster is idle now")
     print(f"Cluster was idle for {idle_period} minutes")
-
-
-if __name__ == "__main__":
-    main()

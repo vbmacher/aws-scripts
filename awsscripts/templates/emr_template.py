@@ -106,14 +106,10 @@ class EmrTemplate(Template):
 
     def get_security_groups(self) -> Dict[str, Any]:
         return self['security_groups'] if 'security_groups' in self else {
-            'AdditionalSlaveSecurityGroups': [
-                # TODO
-            ],
+            'AdditionalSlaveSecurityGroups': [],
             'EmrManagedSlaveSecurityGroup': 'TODO',
             'EmrManagedMasterSecurityGroup': 'TODO',
-            'AdditionalMasterSecurityGroups': [
-                # TODO
-            ]
+            'AdditionalMasterSecurityGroups': []
         }
 
     def set_job_flow_role(self, job_flow_role: str) -> None:

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
-from templates.code_artifact import CodeArtifactTemplate
+from templates.codeartifact_template import CodeArtifactTemplate
 from templates.emr_template import EmrTemplate
 
 templates = {

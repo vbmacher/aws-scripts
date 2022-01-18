@@ -1,12 +1,19 @@
 # AWSome Scripts
 
-Scripts bringing up opinionated convention and simplification of **manual** work with AWS services from command line.
+A tool for convenient calling of AWS CLI. It brings:
+- an opinionated simplification over **manual** user-AWS interaction,
+- it saves and reuses repeated AWS service configuration.
 
-For example, the whole setup of the scripts and then start an EMR cluster (nothing else is needed):
+For example, in order to start an EMR cluster with configuration similar to already existing
+cluster:
 
 ```
-aws-accounts -a my-emr -d -cemr j-D9OAIJX09SJ3
-emr-start -n "My cluster" -c 5 -i "r5.xlarge" -S
+# Creates account my-account, makes it default and configures it with EMR copied from existing cluster
+awss accounts -a my-account -d -cemr j-D9OAIJX09SJ3
+
+# Starts new EMR cluster, using config from the now-default account "my-account"
+# and hardware: 1 on-demand master node and 5 spot core nodes of type r5.xlarge
+awss emr start -n "My cluster" -c 5 -i "r5.xlarge" -S
 ```
 
 ## Project goals
