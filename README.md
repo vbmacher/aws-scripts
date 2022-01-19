@@ -144,7 +144,7 @@ manual file editing is to fill up the sketch item values. The AWS service sketch
 are also managed by the command. For example, if you want to create AWS EMR configuration sketch item, run:
 
 ```
-awss sketches -c emr
+awss s -c emr
 ```
 
 This will create AWS EMR sketch item in the `~/.aws-scripts/sketches/mysketch.json` file. It however keeps the previous
