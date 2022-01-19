@@ -1,7 +1,7 @@
-from templates.template import Template
+from awsscripts.sketches.sketchitem import SketchItem
 
 
-class CodeArtifactTemplate(Template):
+class CodeArtifactSketchItem(SketchItem):
 
     def generate(self):
         return {

@@ -1,11 +1,11 @@
 from typing import Dict, Any, Optional, List
 
-from ec2 import ec2_instances
-from emr.emr import EMR
-from templates.template import Template
+from awsscripts.ec2.ec2 import ec2_instances
+from awsscripts.emr.emr import EMR
+from awsscripts.sketches.sketchitem import SketchItem
 
 
-class EmrTemplate(Template):
+class EmrSketchItem(SketchItem):
 
     def has_configuration(self, name: str) -> bool:
         """
@@ -106,14 +106,10 @@ class EmrTemplate(Template):
 
     def get_security_groups(self) -> Dict[str, Any]:
         return self['security_groups'] if 'security_groups' in self else {
-            'AdditionalSlaveSecurityGroups': [
-                # TODO
-            ],
+            'AdditionalSlaveSecurityGroups': [],
             'EmrManagedSlaveSecurityGroup': 'TODO',
             'EmrManagedMasterSecurityGroup': 'TODO',
-            'AdditionalMasterSecurityGroups': [
-                # TODO
-            ]
+            'AdditionalMasterSecurityGroups': []
         }
 
     def set_job_flow_role(self, job_flow_role: str) -> None:
@@ -224,7 +220,7 @@ class EmrTemplate(Template):
             'job_flow_role': self.get_job_flow_role(),
             'service_role': self.get_service_role(),
             'security_groups': self.get_security_groups(),
-            'instance_fleets': EmrTemplate._generate_instance_fleets()
+            'instance_fleets': EmrSketchItem._generate_instance_fleets()
         }
 
     @staticmethod
@@ -247,17 +243,17 @@ class EmrTemplate(Template):
 
     @staticmethod
     def from_cluster(cluster_id: str):
-        template = EmrTemplate()
+        emr_item = EmrSketchItem()
         emr = EMR(verbose=False)
         cluster = emr.describe_cluster(cluster_id)
         ec2 = cluster['Ec2InstanceAttributes']
 
         for b in cluster['BootstrapActions']:
-            template.put_bootstrap_script(b['Name'], b['ScriptPath'], b['Args'])
+            emr_item.put_bootstrap_script(b['Name'], b['ScriptPath'], b['Args'])
 
         subnets = ec2['RequestedEc2SubnetIds'] if ec2['RequestedEc2SubnetIds'] else [ec2['Ec2SubnetId']]
         for subnet in subnets:
-            template.put_subnet(subnet)
+            emr_item.put_subnet(subnet)
 
         security_groups = {
             'EmrManagedMasterSecurityGroup': ec2['EmrManagedMasterSecurityGroup'],
@@ -269,20 +265,20 @@ class EmrTemplate(Template):
             security_groups['AdditionalSlaveSecurityGroups'] = ec2['AdditionalSlaveSecurityGroups']
         if 'ServiceAccessSecurityGroup' in ec2:
             security_groups['ServiceAccessSecurityGroup'] = ec2['ServiceAccessSecurityGroup']
-        template.put_security_groups(security_groups)
+        emr_item.put_security_groups(security_groups)
 
-        template.set_job_flow_role(ec2['IamInstanceProfile'])
+        emr_item.set_job_flow_role(ec2['IamInstanceProfile'])
         # template.set_service_role(???)
-        template.set_log_uri(cluster['LogUri'])
-        template.put_configurations(cluster['Configurations'])
-        template.put_tags(cluster['Tags'])
+        emr_item.set_log_uri(cluster['LogUri'])
+        emr_item.put_configurations(cluster['Configurations'])
+        emr_item.put_tags(cluster['Tags'])
 
         if 'Ec2KeyName' in ec2:
-            template.set_keyname(ec2['Ec2KeyName'])
-        return template
+            emr_item.set_keyname(ec2['Ec2KeyName'])
+        return emr_item
 
     @staticmethod
     def from_content(content: Dict[str, Any]):
-        template = EmrTemplate()
-        template.content = content
-        return template
+        emr_item = EmrSketchItem()
+        emr_item.content = content
+        return emr_item

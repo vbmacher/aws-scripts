@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 import math
 
-from ec2 import ec2_instances
+from awsscripts.ec2.ec2 import ec2_instances
 
 
 class EmrConfigurations:

@@ -1,7 +1,6 @@
 from typing import Dict
 
 # https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-supported-instance-types.html
-# TODO: include supported emr versions for each
 
 ec2_instances: Dict[str, Dict[str, float]] = {
     "t1.micro": {"cpu": 1, "memory": 0.612, "ghz": 0, "storage": 0},
