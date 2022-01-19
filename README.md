@@ -111,19 +111,16 @@ twine check aws-scripts/dist/*
 
 ## Usage
 
-### Set up your "sketches"
+The following sections describe the list of usable commands which correspond to particular AWS services.
+
+### Sketches
 
 Command: `awss s`
 
-A sketch is a configuration file for one or more AWS services ("sketch items"). The sketches can be used for:
+A sketch is a configuration file for one or more AWS services ("sketch items").
 
-- real AWS accounts
-- VPCs
-- custom use cases, custom services or pipelines
-
-Sketches are stored in user home directory, e.g. sketch `mysketch` is stored in: `~/.aws-scripts/sketches/mysketch.json`
-. A default sketch is determined by a symlink `~/.aws-scripts/sketches/.default.json`. This symlink is fully managed by
-the `awss s` command. If the link does not exist, no default sketch is set up.
+Sketch files are stored in user home directory, e.g. `~/.aws-scripts/sketches/mysketch.json`.
+A default sketch is determined by a symlink `~/.aws-scripts/sketches/.default.json`.
 
 The sketch file content is a single JSON object with keys representing AWS services, e.g.:
 
@@ -139,28 +136,12 @@ The sketch file content is a single JSON object with keys representing AWS servi
 }
 ```
 
-CRUD of AWSome sketches and setting the default sketch is fully managed by `awss s` command. The only use case for
-manual file editing is to fill up the sketch item values. The AWS service sketch items (templates), stored in a sketch,
-are also managed by the command. For example, if you want to create AWS EMR configuration sketch item, run:
+Sketches can be fully or partially managed with `awss s` command, but you're encouraged to fill them manually. The
+command won't remove or replace your changes, only if explicitly advised to do so.
 
-```
-awss s -c emr
-```
-
-This will create AWS EMR sketch item in the `~/.aws-scripts/sketches/mysketch.json` file. It however keeps the previous
-values if the EMR service is already there. Then, a usual next step is to manually edit the sketch file to fill the real
-values. This setup is required to be done for most of the supported AWS services.
-
-The command `awss s` can autofill the configuration for some AWS services, if you provide a sample. For example, in
-order to autofill AWS EMR configuration from the existing cluster, type:
-
-```
-awss s -cemr j-D9OAIJX09SJ3
-```
-
-## Usage
-
-The following sections describe the list of usable commands which correspond to particular AWS services.
+Some examples:
+- creating AWS EMR sketch item: `awss s -c emr`
+- auto-configure AWS EMR sketch item: `awss s -cemr j-D9OAIJX09SJ3`
 
 ### EMR
 
