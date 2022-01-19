@@ -1,17 +1,17 @@
 # AWSome Scripts
 
 A tool for convenient calling of AWS CLI. It brings:
+
 - an opinionated simplification over **manual** user-AWS interaction,
 - it saves and reuses repeated AWS service configuration.
 
-For example, in order to start an EMR cluster with configuration similar to already existing
-cluster:
+For example, in order to start an EMR cluster with configuration similar to already existing cluster:
 
 ```
-# Creates account my-account, makes it default and configures it with EMR copied from existing cluster
-awss accounts -a my-account -d -cemr j-D9OAIJX09SJ3
+# Creates sketch "mysketch", makes it default and configures it with EMR copied from existing cluster
+awss s -s mysketch -d -cemr j-D9OAIJX09SJ3
 
-# Starts new EMR cluster, using config from the now-default account "my-account"
+# Starts new EMR cluster, using config from the now-default sketch "mysketch"
 # and hardware: 1 on-demand master node and 5 spot core nodes of type r5.xlarge
 awss emr start -n "My cluster" -c 5 -i "r5.xlarge" -S
 ```
@@ -20,23 +20,24 @@ awss emr start -n "My cluster" -c 5 -i "r5.xlarge" -S
 
 ### Functional goals
 
-- the scripts should allow reusing various configurations of AWS services
-  - by having multiple profiles/accounts stored in files
+- ~~the scripts should allow reusing various configurations of AWS services~~
+    - ~~by having multiple "sketches" stored in files~~
 - the scripts should simplify using AWS services from command line
-  - starting/stopping EMR clusters / EC2 instances
-  - logging in/out from codeartifact, 
-  - sending a message to SQS queue
-  - bypass Airflow commands though MWAA HTTP calls
-  - etc.
+    - ~~starting/stopping EMR clusters~~
+    - starting/stopping EC2 instances
+    - ~~logging in/out from codeartifact~~
+    - sending a message to SQS queue
+    - ~~bypass Airflow commands though MWAA HTTP calls~~
+    - etc.
 - the scripts should allow to run a pipeline file written using a DSL language.
-  - the pipeline should be able to use "templates" stored elsewhere
-  - the DSL should allow to use variables
-  - the DSL should allow to use loops, date range generation, file copying
-  - the DSL should allow to replace values from external configuration file (e.g. typesafe HOCON) using
-    some templating language (JINJA??) 
+    - the pipeline should be able to use "sketch items" stored in existing sketches
+    - the DSL should allow to use variables
+    - the DSL should allow to use loops, date range generation, file copying
+    - the DSL should allow to replace values from external configuration file (e.g. typesafe HOCON) using some
+      templating language (JINJA??)
 - the scripts should track progress of work
 - the scripts should allow to interrupt/resume work
-  - transactional work if possible
+    - transactional work if possible
 
 ### Non-functional goals
 
@@ -47,16 +48,16 @@ awss emr start -n "My cluster" -c 5 -i "r5.xlarge" -S
 
 ### Non-goals
 
-- AWSome scripts is not "resisent" application. It means no scheduling capability or active monitoring will be supported
+- AWSome scripts is not "resident" application. It means no scheduling capability or active monitoring will be supported
 
 ## Supported AWS services:
 
 Current focus is on the following services:
 
 - EMR
+- EC2
 - MWAA
 - CodeArtifact
-- more TBD
 
 ## Installation
 
@@ -76,8 +77,8 @@ python3 -m pip install aws-scripts
 Before using, please set up AWS CLI configuration:
 
 - `.aws/config`: AWS configuration (e.g. default region to use)
-- `.aws/credentials`: AWS key and secret of the AWS account. 
-  For more information, visit [AWS CLI configuration][cli-config].
+- `.aws/credentials`: AWS key and secret of the AWS account. For more information,
+  visit [AWS CLI configuration][cli-config].
 
 ## Building & Local testing
 
@@ -110,20 +111,21 @@ twine check aws-scripts/dist/*
 
 ## Usage
 
-### Set up your "accounts"
+### Set up your "sketches"
 
-Script `aws-accounts` allows you to manage so-called "accounts" used by AWSome scripts.
-An account is a configuration profile for one or more AWS services stored in a single file.
-The accounts can be used for:
-- multiple real AWS accounts
-- multiple VPCs
-- multiple custom use cases, custom services or pipelines
+Command: `awss s`
 
-Accounts are stored in user home directory, e.g. account `myaccount` is stored in: `~/.aws-scripts/accounts/myaccount.json`. 
-A default account is determined by a symlink `~/.aws-scripts/accounts/.default.json`. This symlink is fully managed
-by the `aws-accounts` script. If the link does not exist, no default account is set up.
+A sketch is a configuration file for one or more AWS services ("sketch items"). The sketches can be used for:
 
-The account file content is a single JSON object with keys representing AWS services, e.g.:
+- real AWS accounts
+- VPCs
+- custom use cases, custom services or pipelines
+
+Sketches are stored in user home directory, e.g. sketch `mysketch` is stored in: `~/.aws-scripts/sketches/mysketch.json`
+. A default sketch is determined by a symlink `~/.aws-scripts/sketches/.default.json`. This symlink is fully managed by
+the `awss s` command. If the link does not exist, no default sketch is set up.
+
+The sketch file content is a single JSON object with keys representing AWS services, e.g.:
 
 ```
 {
@@ -137,62 +139,54 @@ The account file content is a single JSON object with keys representing AWS serv
 }
 ```
 
-CRUD of AWSome accounts and setting the default account is fully managed by `aws-accounts` script. Only use case for 
-manual file editing is to fill up the template values in the accounts. The AWS service templates, stored in the account
-are also managed by the script. For example, if you want to create AWS EMR configuration template,
-run:
+CRUD of AWSome sketches and setting the default sketch is fully managed by `awss s` command. The only use case for
+manual file editing is to fill up the sketch item values. The AWS service sketch items (templates), stored in a sketch,
+are also managed by the command. For example, if you want to create AWS EMR configuration sketch item, run:
 
 ```
-aws-accounts -a myaccount -c emr
+awss sketches -c emr
 ```
 
-This will create AWS EMR template in the `~/.aws-scripts/accounts/myaccount.json` file. It however keeps the previous
-values if the EMR service is already there. Then, a usual next step is to manually edit the account file to fill the
-real values in the template. This setup is required to be done for most of the supported AWS services
+This will create AWS EMR sketch item in the `~/.aws-scripts/sketches/mysketch.json` file. It however keeps the previous
+values if the EMR service is already there. Then, a usual next step is to manually edit the sketch file to fill the real
+values. This setup is required to be done for most of the supported AWS services.
 
-Script `aws-accounts` can autofill the configuration for some AWS services, if you provide a sample. For example,
-in order to autofill AWS EMR configuration from the existing cluster, type:
+The command `awss s` can autofill the configuration for some AWS services, if you provide a sample. For example, in
+order to autofill AWS EMR configuration from the existing cluster, type:
 
 ```
-aws-accounts -a myaccount -cemr j-D9OAIJX09SJ3
+awss s -cemr j-D9OAIJX09SJ3
 ```
 
 ## Usage
 
-The following sections describe the usage of the scripts for supported AWS services.
+The following sections describe the list of usable commands which correspond to particular AWS services.
 
 ### EMR
 
-List of available scripts:
+Command: `awss emr`
 
-- `emr-start` - Starts a new cluster
-- `emr-submit-spark` - Submits a Spark step (JAR or Python) using spark-submit command
-- `emr-terminate` - Terminates a cluster
-- `emr-is-idle` - Determines if a cluster is idle
+List of available subcommands:
+
+- `start` - Starts a new cluster
+- `submit` - Submits a Spark step (JAR or Python) using spark-submit command
+- `terminate` - Terminates a cluster
+- `isidle` - Determines if a cluster is idle
 
 ### MWAA
 
-List of available scripts:
+Command: `awss mwaa`
 
-- `mwaa` - Executes Airflow CLI command remotely on any MWAA environment
+Executes Airflow CLI command remotely on any MWAA environment
 
 ### CodeArtifact
 
-List of available scripts:
+Command: `awss ca`
 
-- `codeartifact` - Logs in/logs out to CodeArtifact: optionally configures `pip` and `twine` tools
+List of available subcommands:
 
-## For Developers
-
-### Conventions
-
-Script file names should be composed of words separated with plain dashes, in format: `[service]-[function]`,
-e.g. `emr-start`. 
-
-Source code file names should be composed of words separated with underscores, in format: `[service]_[function].py`,
-e.g. `emr_start.py`. 
-
-
+- `login` - Logs in to CodeArtifact: optionally configures `pip` and `twine` tools
+- `logout` - Logs out from CodeArtifact: optionally configures `pip` tool
 
 [cli-install]: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 [cli-config]: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html

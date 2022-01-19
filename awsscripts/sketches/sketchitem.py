@@ -1,9 +1,9 @@
 from typing import Any, Dict, List, Optional
 
 
-class Template:
+class SketchItem:
     """
-    AWS service template
+    Base for a sketch item
     """
 
     def __init__(self):
@@ -57,8 +57,8 @@ class Template:
 
     def generate(self) -> Dict[str, Any]:
         """
-        Generate AWS service template (a dictionary)
-        :return: template content
+        Generate sketch item content (a dictionary)
+        :return: sketch item content
         """
         return self.content
 

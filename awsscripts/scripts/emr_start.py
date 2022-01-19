@@ -1,9 +1,9 @@
 import sys
 
-from accounts import Accounts
-from emr.configurations import EmrConfigurations
-from emr.emr import EMR
-from templates.emr_template import EmrTemplate
+from awsscripts.sketches.sketches import Sketches
+from awsscripts.emr.configurations import EmrConfigurations
+from awsscripts.emr.emr import EMR
+from awsscripts.sketches.emr import EmrSketchItem
 
 
 def configure_parser(parser):
@@ -13,7 +13,7 @@ def configure_parser(parser):
     parser.add_argument('-ci', '--core_instance', metavar='INSTANCE', default='m5.xlarge',
                         help='core nodes instance type')
     parser.add_argument('-f', '--fleet', metavar='INSTANCE_FLEET',
-                        help='instance fleet name (instance fleets must be defined in the account)')
+                        help='instance fleet name (instance fleets must be defined in the sketch)')
     parser.add_argument('-e', '--emr', metavar='LABEL', default='emr-6.4.0', help='EMR release label')
     parser.add_argument('-p', '--protect', help='set cluster as TerminationProtected', action='store_true')
     parser.add_argument('-c', '--count', metavar='N', default=1, type=int, help='core node instances count')
@@ -27,17 +27,15 @@ def configure_parser(parser):
                         help='EBS volume size in GB (core nodes)')
     parser.add_argument('-S', '--spot', help='Use Spot core nodes', action='store_true')
     parser.add_argument('-b', '--boot', metavar='NAME', type=str, nargs='*',
-                        help='Bootstrap scripts (names as defined in the account).')
+                        help='Bootstrap scripts (names as defined in the sketch).')
     parser.add_argument('-A', '--applications', metavar='APP', nargs='*',
                         default=['Spark', 'JupyterHub', 'JupyterEnterpriseGateway', 'Hadoop', 'Livy'],
                         help='EMR applications (default: Spark,JupyterHub,JupyterEnterpriseGateway,Hadoop,Livy)')
 
 
 def execute(args) -> None:
-    accounts = Accounts()
-
-    if not args.account:
-        print('Account not is set, and no default account exists')
+    if not args.sketch:
+        print('Sketch not is set, and no default sketch exists')
         sys.exit(1)
 
     if args.fleet and (args.master_instance or args.core_instance):
@@ -56,7 +54,8 @@ def execute(args) -> None:
         print('Core node target on_demand capacity must be defined')
         sys.exit(1)
 
-    template = EmrTemplate.from_content(accounts[args.account]["emr"])
+    sketches = Sketches()
+    emr_item = EmrSketchItem.from_content(sketches[args.sketch]["emr"])
     configurations = EmrConfigurations()
 
     if args.core_instance:
@@ -65,58 +64,58 @@ def execute(args) -> None:
             "node_count": args.count
         })
         configurations.add_spark(args.core_instance, args.count)
-    template.put_configurations(configurations.configurations)
+    emr_item.put_configurations(configurations.configurations)
 
     if args.fleet:
-        template.put_instance_fleet(args.fleet, args.master_capacity, args.core_capacity, args.spot)
+        emr_item.put_instance_fleet(args.fleet, args.master_capacity, args.core_capacity, args.spot)
     if args.master_instance:
-        template.put_instance_groups(args.master_instance, args.core_instance, args.count, args.spot)
+        emr_item.put_instance_groups(args.master_instance, args.core_instance, args.count, args.spot)
     if args.emr:
-        template.set_emr_label(args.emr)
+        emr_item.set_emr_label(args.emr)
     if args.name:
-        template.set_cluster_name(args.name)
-    if args.applications and not template.contains('applications'):
-        template.set_applications(args.applications)
-    if args.protect and not template.contains('TerminationProtected'):
-        template.set_protect(args.protect)
+        emr_item.set_cluster_name(args.name)
+    if args.applications and not emr_item.contains('applications'):
+        emr_item.set_applications(args.applications)
+    if args.protect and not emr_item.contains('TerminationProtected'):
+        emr_item.set_protect(args.protect)
     if args.master_size:
-        template.set_master_size_gb(args.master_size)
+        emr_item.set_master_size_gb(args.master_size)
     if args.core_size:
-        template.set_core_size_gb(args.core_size)
+        emr_item.set_core_size_gb(args.core_size)
 
     if args.verbose:
-        generated = template.generate()
+        generated = emr_item.generate()
         generated.pop('instance_fleets')
         print(generated)
 
     boot = []
     if args.boot:
-        boot = [template.get_bootstrap_script(b) for b in args.boot]
+        boot = [emr_item.get_bootstrap_script(b) for b in args.boot]
 
     emr = EMR(args.verbose)
     cluster_id = emr.start_cluster(
-        name=template.get_cluster_name(),
-        log_uri=template.get_log_uri(),
+        name=emr_item.get_cluster_name(),
+        log_uri=emr_item.get_log_uri(),
         keep_alive=True,
-        protect=template.get_protect(),
-        applications=template.applications,
-        job_flow_role=template.get_job_flow_role(),
-        service_role=template.get_service_role(),
-        emr_label=template.get_emr_label(),
-        instance_fleet=template.get_instance_fleet(),
-        instance_fleet_configs=template.get_instance_fleets(),
-        instance_groups=template.get_instance_groups(),
-        ebs_master_volume_gb=template.get_master_size_gb(),
-        ebs_core_volume_gb=template.get_core_size_gb(),
+        protect=emr_item.get_protect(),
+        applications=emr_item.applications,
+        job_flow_role=emr_item.get_job_flow_role(),
+        service_role=emr_item.get_service_role(),
+        emr_label=emr_item.get_emr_label(),
+        instance_fleet=emr_item.get_instance_fleet(),
+        instance_fleet_configs=emr_item.get_instance_fleets(),
+        instance_groups=emr_item.get_instance_groups(),
+        ebs_master_volume_gb=emr_item.get_master_size_gb(),
+        ebs_core_volume_gb=emr_item.get_core_size_gb(),
         steps=[{
             'Name': 'Enable debugging',
             'Args': ["state-pusher-script"]
         }],
-        tags=template.get_tags(),
-        security_groups=template.get_security_groups(),
-        subnets=template.get_subnets(),
-        configurations=template.get_configurations(),
-        keyname=template.get_keyname(),
+        tags=emr_item.get_tags(),
+        security_groups=emr_item.get_security_groups(),
+        subnets=emr_item.get_subnets(),
+        configurations=emr_item.get_configurations(),
+        keyname=emr_item.get_keyname(),
         bootstrap_scripts=boot
     )
 

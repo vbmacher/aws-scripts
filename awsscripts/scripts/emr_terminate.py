@@ -1,4 +1,4 @@
-from emr.emr import EMR
+from awsscripts.emr.emr import EMR
 
 
 def configure_parser(parser) -> None:

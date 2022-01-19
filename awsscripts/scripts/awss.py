@@ -1,38 +1,39 @@
 import argparse
 
-import accounts as acc
-import ca_login
-import ca_logout
-import emr_isidle
-import emr_start
-import emr_submit
-import emr_terminate
-import mwaa
-from accounts import Accounts
+import awsscripts.scripts.ca_login as ca_login
+import awsscripts.scripts.ca_logout as ca_logout
+import awsscripts.scripts.emr_isidle as emr_isidle
+import awsscripts.scripts.emr_start as emr_start
+import awsscripts.scripts.emr_submit as emr_submit
+import awsscripts.scripts.emr_terminate as emr_terminate
+import awsscripts.scripts.mwaa as mwaa
+import awsscripts.scripts.sketches as ske
+from awsscripts.sketches.sketches import Sketches
 
 
 def main() -> None:
-    accounts = Accounts()
-    default_account = accounts.get_default_account()
-    default_msg = f' (default={default_account})' if default_account else ''
+    sketches = Sketches()
+    default_sketch = sketches.get_default()
+    default_msg = f' (default={default_sketch})' if default_sketch else ''
 
     parser = argparse.ArgumentParser(description='AWSome Scripts')
-    parser.add_argument('-a', '--account', metavar='ACCOUNT', default=default_account,
-                        help=f"AWS account{default_msg}. One of: {accounts.list()}")
+    parser.set_defaults(func=(lambda a: 0))
+    parser.add_argument('-s', '--sketch', metavar='SKETCH', default=default_sketch, required=False,
+                        help=f"AWS sketch{default_msg}. One of: {sketches.list()}")
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
 
-    subparsers = parser.add_subparsers(title='services')
-    pemr = subparsers.add_parser('emr')
-    pmwaa = subparsers.add_parser('mwaa')
-    pca = subparsers.add_parser('ca')
-    paccounts = subparsers.add_parser('a')
+    subparsers = parser.add_subparsers(title='Available commands')
+    pemr = subparsers.add_parser('emr', help='elastic map reduce')
+    pmwaa = subparsers.add_parser('mwaa', help='managed workflows for apache airflow')
+    pca = subparsers.add_parser('ca', help='code artifact')
+    psketches = subparsers.add_parser('s', help='sketches')
 
-    # Accounts
-    paccounts.set_defaults(func=acc.execute)
-    acc.configure_parser(paccounts)
+    # Sketches
+    psketches.set_defaults(func=ske.execute)
+    ske.configure_parser(psketches)
 
     # EMR
-    pemr_subparsers = pemr.add_subparsers(title='EMR')
+    pemr_subparsers = pemr.add_subparsers(title='EMR subcommands')
     pemr_start = pemr_subparsers.add_parser('start', description='starts EMR cluster')
     pemr_start.set_defaults(func=emr_start.execute)
     emr_start.configure_parser(pemr_start)
@@ -50,7 +51,7 @@ def main() -> None:
     emr_isidle.configure_parser(pemr_isidle)
 
     # CodeArtifact
-    pca_subparsers = pca.add_subparsers(title='CodeArtifact')
+    pca_subparsers = pca.add_subparsers(title='CodeArtifact subcommands')
     pca_login = pca_subparsers.add_parser('login', description='login to CA')
     pca_login.set_defaults(func=ca_login.execute)
     ca_login.configure_parser(pca_login)
