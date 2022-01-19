@@ -50,14 +50,12 @@ awss emr start -n "My cluster" -c 5 -i "r5.xlarge" -S
 
 - AWSome scripts is not "resident" application. It means no scheduling capability or active monitoring will be supported
 
-## Supported AWS services:
+## License
 
-Current focus is on the following services:
+This project is released under the [MIT License][mit-license].
 
-- EMR
-- EC2
-- MWAA
-- CodeArtifact
+<a href="https://www.buymeacoffee.com/vbmacher" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+
 
 ## Installation
 
@@ -172,3 +170,4 @@ List of available subcommands:
 [cli-install]: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 [cli-config]: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 [pip]: https://packaging.python.org/tutorials/installing-packages/
+[mit-license]: https://opensource.org/licenses/MIT
